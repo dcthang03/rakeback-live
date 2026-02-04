@@ -163,8 +163,8 @@ function renderSeats() {
   const cy = rect.height / 2
   const seatRadius = SEAT_SIZE / 2
 
-  const radiusX = cx - seatRadius - TABLE_BORDER - SAFE_PADDING
-  const radiusY = cy - seatRadius - TABLE_BORDER - SAFE_PADDING
+  const radiusX = cx - seatRadius - TABLE_BORDER - SAFE_PADDING +50
+  const radiusY = cy - seatRadius - TABLE_BORDER - SAFE_PADDING +50
 
   for (let i = 1; i <= SEAT_COUNT; i++) {
     const { el, uidEl } = seats[i]
