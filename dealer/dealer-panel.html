@@ -2,11 +2,13 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Dealer Panel – Realtime</title>
 
 <style>
-/* ===== UI ===== */
+/* ================= UI ================= */
+
 body {
   margin: 0;
   background: #0e0e11;
@@ -71,22 +73,34 @@ button { font-size: 16px; }
   <div class="table" id="table"></div>
 </div>
 
+<!-- ================= LIBS ================= -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
-/* ===== SUPABASE ===== */
-const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+/* ================= SUPABASE ================= */
+
+const SUPABASE_URL =
+  'https://ymtmipkmknnsqleahlmi.supabase.co'
+
+const SUPABASE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+)
+
 const TABLE_ID = 'A1'
 
-/* ===== CONFIG ===== */
+/* ================= CONFIG ================= */
+
 const SEAT_COUNT = 9
 const TOP_SEAT = 5
 const HOLD_TIME = 700
 
-/* ===== STATE ===== */
+/* ================= STATE ================= */
+
 const seatState = {}
 const seats = {}
 let holdTimer = null
@@ -94,7 +108,8 @@ let isHolding = false
 
 const tableEl = document.getElementById('table')
 
-/* ===== CREATE SEATS ===== */
+/* ================= CREATE SEATS ================= */
+
 for (let i = 1; i <= SEAT_COUNT; i++) {
   seatState[i] = { uid: null }
 
@@ -107,13 +122,12 @@ for (let i = 1; i <= SEAT_COUNT; i++) {
 
   seat.append(num, uidEl)
 
-  /* ===== HOLD LOGIC (FIX SAFARI) ===== */
+  /* ---- HOLD LOGIC (Safari safe) ---- */
 
   seat.addEventListener('pointerdown', () => {
     clearTimeout(holdTimer)
     isHolding = false
 
-    // ⚠️ setTimeout CHỈ để xác định HOLD
     holdTimer = setTimeout(() => {
       isHolding = true
     }, HOLD_TIME)
@@ -121,10 +135,8 @@ for (let i = 1; i <= SEAT_COUNT; i++) {
 
   seat.addEventListener('pointerup', () => {
     clearTimeout(holdTimer)
-
     if (!isHolding) return
 
-    // ✅ MỞ CAMERA TRONG USER GESTURE → Safari cho phép
     if (seatState[i].uid) {
       if (confirm(`Reject UID ${seatState[i].uid.slice(0,6)} ?`)) {
         ejectUID(i)
@@ -136,28 +148,29 @@ for (let i = 1; i <= SEAT_COUNT; i++) {
     isHolding = false
   })
 
-  seat.addEventListener('pointerleave', () => {
-    clearTimeout(holdTimer)
-    isHolding = false
-  })
+  seat.addEventListener('pointerleave', resetHold)
+  seat.addEventListener('pointercancel', resetHold)
 
-  seat.addEventListener('pointercancel', () => {
+  function resetHold() {
     clearTimeout(holdTimer)
     isHolding = false
-  })
+  }
 
   seats[i] = { el: seat, uidEl }
   tableEl.appendChild(seat)
 }
 
-/* ===== RENDER ===== */
+/* ================= RENDER ================= */
+
 function renderSeats() {
   const r = tableEl.getBoundingClientRect()
   const cx = r.width / 2
   const cy = r.height / 2
 
   for (let i = 1; i <= SEAT_COUNT; i++) {
-    const angle = (Math.PI * 2 / SEAT_COUNT) * (i - TOP_SEAT) - Math.PI / 2
+    const angle =
+      (Math.PI * 2 / SEAT_COUNT) * (i - TOP_SEAT) - Math.PI / 2
+
     const el = seats[i].el
     const uidEl = seats[i].uidEl
 
@@ -166,22 +179,24 @@ function renderSeats() {
     el.style.transform = 'translate(-50%, -50%)'
 
     el.classList.toggle('occupied', !!seatState[i].uid)
-    uidEl.textContent = seatState[i].uid ? seatState[i].uid.slice(0,4) : ''
+    uidEl.textContent =
+      seatState[i].uid ? seatState[i].uid.slice(0,4) : ''
   }
 }
 
-/* ===== DB ===== */
+/* ================= DB ================= */
+
 async function assignUID(seat, uid) {
   seatState[seat].uid = uid
   renderSeats()
 
-  const { data, error } = await sb
+  const { error } = await sb
     .from('seats')
     .update({ uid })
     .eq('table_id', TABLE_ID)
     .eq('seat_number', String(seat))
 
-  if (error || !data) {
+  if (error) {
     seatState[seat].uid = null
     renderSeats()
     alert('❌ Gán UID thất bại')
@@ -206,14 +221,42 @@ async function ejectUID(seat) {
   }
 }
 
-/* ===== QR SCANNER ===== */
+/* ================= LOAD + REALTIME ================= */
+
+async function loadSeats() {
+  const { data } = await sb
+    .from('seats')
+    .select('*')
+    .eq('table_id', TABLE_ID)
+
+  if (data) {
+    data.forEach(r => {
+      seatState[r.seat_number].uid = r.uid
+    })
+    renderSeats()
+  }
+}
+
+sb.channel('seats-realtime')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'seats',
+      filter: `table_id=eq.${TABLE_ID}` },
+    p => {
+      seatState[p.new.seat_number].uid = p.new.uid
+      renderSeats()
+    }
+  )
+  .subscribe()
+
+/* ================= QR SCANNER ================= */
 
 let qrScanner = null
 let isScanning = false
-let currentSeat = null
+let currentSeatIndex = null
 
 function scanQRAndAssign(seatIndex) {
-  currentSeat = seatIndex
+  currentSeatIndex = seatIndex
   document.getElementById('qrModal').style.display = 'flex'
 
   if (!qrScanner) {
@@ -223,14 +266,15 @@ function scanQRAndAssign(seatIndex) {
   isScanning = true
 
   qrScanner.start(
-    { facingMode: "environment" }, // ⚠️ KHÔNG exact – Safari ổn định
+    { facingMode: "environment" },
     { fps: 12, qrbox: 220 },
     onScanSuccess
   )
 }
 
 function onScanSuccess(text) {
-  if (!isScanning) return
+  if (!isScanning || currentSeatIndex === null) return
+
   isScanning = false
 
   qrScanner.stop().then(() => {
@@ -238,20 +282,52 @@ function onScanSuccess(text) {
   })
 
   const uid = text.match(/[A-Za-z0-9]+/)?.[0]?.toUpperCase()
-  if (!uid) return alert('QR không hợp lệ')
+  if (!uid) return resetQR()
 
   navigator.vibrate?.(30)
-  assignUID(currentSeat, uid)
+  assignUID(currentSeatIndex, uid)
+  resetQR()
 }
+
+function resetQR() {
+  isScanning = false
+  currentSeatIndex = null
+}
+
+/* ================= START ================= */
+
+renderSeats()
+loadSeats()
+window.addEventListener('resize', renderSeats)
+
+/* ================= iOS UX FIX ================= */
+/* Chặn double-tap zoom, KHÔNG phá slider / copy */
+
+let lastTouchEnd = 0
+document.addEventListener(
+  'touchend',
+  e => {
+    const now = Date.now()
+    if (now - lastTouchEnd <= 300) e.preventDefault()
+    lastTouchEnd = now
+  },
+  { passive: false }
+)
+
+console.log('dealer-panel FINAL – v1.400')
 </script>
 
+<!-- ================= QR MODAL ================= -->
+
 <div id="qrModal" style="
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: rgba(0,0,0,.85);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 9999;">
+  z-index: 9999;
+">
   <div style="width:260px;background:#000;padding:12px;border-radius:12px">
     <div id="qr-reader"></div>
     <button onclick="location.reload()" style="width:100%;margin-top:10px">
@@ -260,10 +336,7 @@ function onScanSuccess(text) {
   </div>
 </div>
 
-<script>
-renderSeats()
-console.log('v1.340 – HOLD + CAMERA FIXED')
-</script>
+<script> console.log('v1.342') </script>
 
 </body>
 </html>
