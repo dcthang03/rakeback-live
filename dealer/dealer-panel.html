@@ -28,6 +28,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  transform: translateY(-6vh); /* 👈 kéo toàn bộ bàn + ghế lên */
 }
 
 .table {
@@ -148,24 +149,7 @@ seat.addEventListener('pointerup', () => {
   isHolding = false
 })
 
-  /*
-  seat.addEventListener('pointerup', () => {
-    clearTimeout(holdTimer)
-   
-    
-    if (!isHolding && !seatState[i].uid) {
-      const uid = prompt(`UID ghế ${i}`)
-      if (uid) assignUID(i, uid)
-    }
-    
-
-
-    holdTimer = null
-    isHolding = false
-  })
-
-  */
-
+ 
   seat.addEventListener('pointerleave', () => {
     clearTimeout(holdTimer)
     holdTimer = null
@@ -210,7 +194,7 @@ function renderSeats() {
 }
 
 /* ===== DB ===== */
-/* ===== DB ===== */
+
 async function assignUID(seat, uid) {
   // optimistic UI
   seatState[seat].uid = uid
@@ -374,7 +358,7 @@ document.addEventListener('touchend', function (e) {
 
 
 <script>
-console.log('v1.223')
+console.log('v1.334')
 </script>
 
 </body>
