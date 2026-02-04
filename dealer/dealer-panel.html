@@ -283,15 +283,22 @@ function scanQRAndAssign(seatIndex) {
   isScanning = true
 
   qrScanner.start(
-    { facingMode: 'environment' },
-    {
-      fps: 12,
-      qrbox: { width: 220, height: 220 },
-      videoConstraints: {
-        width: { ideal: 640 },
-        height: { ideal: 480 }
-      }
-    },
+  {
+    facingMode: { exact: "environment" },
+    width: { ideal: 640 },
+    height: { ideal: 480 }
+  },
+  {
+    fps: 12,
+    qrbox: { width: 220, height: 220 }
+  },
+  onScanSuccess,
+  onScanError
+);
+
+
+
+
 
     (decodedText) => {
       if (!isScanning) return
@@ -375,7 +382,7 @@ document.addEventListener('touchend', function (e) {
 
 
 <script>
-console.log('v1.337')
+console.log('v1.338')
 </script>
 
 </body>
