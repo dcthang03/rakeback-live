@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dealer Panel – Realtime</title>
+
+<style>
+body {
+  margin: 0;
+  background: #0e0e11;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+}
+
+.table-area {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table {
+  position: relative;
+  width: 360px;
+  height: 200px;
+  border-radius: 200px;
+  background: radial-gradient(circle, #1c1c1c, #0f0f0f 70%);
+  border: 4px solid #2a2a2a;
+  overflow: visible;
+}
+
+.seat {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #1f2937;
+  border: 2px solid #374151;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  cursor: pointer;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none; /* 🔥 FIX REJECT */
+}
+
+.seat.occupied {
+  background: #0a84ff;
+  border-color: #0a84ff;
+}
+
+.seat small {
+  font-size: 10px;
+  opacity: .9;
+}
+</style>
+</head>
+
+<body>
+
+<div class="table-area">
+  <div class="table" id="table"></div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
+
+
+/* ===== SUPABASE ===== */
+const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+const TABLE_ID = 'A1'
+
+/* ===== CONFIG ===== */
+const SEAT_COUNT = 9
+const TOP_SEAT = 5
+const SEAT_SIZE = 60
+const TABLE_BORDER = 4
+const SAFE_PADDING = 8
+const HOLD_TIME = 1100
+
+/* ===== STATE ===== */
+const seatState = {}
+const seats = {}
+let holdTimer = null
+let isHolding = false
+
+const tableEl = document.getElementById('table')
+
+/* ===== CREATE SEATS ===== */
+for (let i = 1; i <= SEAT_COUNT; i++) {
+  seatState[i] = { uid: null }
+
+  const seat = document.createElement('div')
+  seat.className = 'seat'
+
+  seat.addEventListener('contextmenu', e => e.preventDefault())
+  seat.addEventListener('selectstart', e => e.preventDefault())
+
+  const num = document.createElement('div')
+  num.textContent = i
+  const uidEl = document.createElement('small')
+
+  seat.appendChild(num)
+  seat.appendChild(uidEl)
+
+  seat.addEventListener('pointerdown', () => {
+    isHolding = false
+    clearTimeout(holdTimer)
+
+    holdTimer = setTimeout(() => {
+      isHolding = true
+      if (seatState[i].uid) {
+        if (confirm(`Reject UID ${seatState[i].uid.slice(0,6)} ?`)) {
+          ejectUID(i)
+        }
+      }
+    }, HOLD_TIME)
+  })
+
+  seat.addEventListener('pointerup', () => {
+    clearTimeout(holdTimer)
+
+    if (!isHolding && !seatState[i].uid) {
+      const uid = prompt(`UID ghế ${i}`)
+      if (uid) assignUID(i, uid)
+    }
+
+    holdTimer = null
+    isHolding = false
+  })
+
+  seat.addEventListener('pointerleave', () => {
+    clearTimeout(holdTimer)
+    holdTimer = null
+    isHolding = false
+  })
+
+  /* 🔥 FIX QUAN TRỌNG */
+  seat.addEventListener('pointercancel', () => {
+    clearTimeout(holdTimer)
+    holdTimer = null
+    isHolding = false
+  })
+
+  seats[i] = { el: seat, uidEl }
+  tableEl.appendChild(seat)
+}
+
+/* ===== RENDER AUTO-FIT ===== */
+function renderSeats() {
+  const rect = tableEl.getBoundingClientRect()
+  const cx = rect.width / 2
+  const cy = rect.height / 2
+  const seatRadius = SEAT_SIZE / 2
+
+  const radiusX = cx - seatRadius - TABLE_BORDER - SAFE_PADDING
+  const radiusY = cy - seatRadius - TABLE_BORDER - SAFE_PADDING
+
+  for (let i = 1; i <= SEAT_COUNT; i++) {
+    const { el, uidEl } = seats[i]
+    const angle =
+      (Math.PI * 2 / SEAT_COUNT) * (i - TOP_SEAT) - Math.PI / 2
+
+    el.style.left = cx + Math.cos(angle) * radiusX + 'px'
+    el.style.top  = cy + Math.sin(angle) * radiusY + 'px'
+    el.style.transform = 'translate(-50%, -50%)'
+
+    el.classList.toggle('occupied', !!seatState[i].uid)
+    uidEl.textContent = seatState[i].uid
+      ? seatState[i].uid.slice(0,4)
+      : ''
+  }
+}
+
+/* ===== DB ===== */
+/* ===== DB ===== */
+async function assignUID(seat, uid) {
+  // optimistic UI
+  seatState[seat].uid = uid
+  renderSeats()
+
+  const { data, error } = await sb
+    .from('seats')
+    .update({ uid })
+    .eq('table_id', TABLE_ID)
+    .eq('seat_number', String(seat))
+    .select()
+
+  if (error || !data || data.length === 0) {
+    seatState[seat].uid = null
+    renderSeats()
+    alert('❌ Gán UID thất bại')
+  }
+}
+
+async function ejectUID(seat) {
+  const old = seatState[seat].uid
+  seatState[seat].uid = null
+  renderSeats()
+
+  const { data, error } = await sb
+    .from('seats')
+    .update({ uid: null })
+    .eq('table_id', TABLE_ID)
+    .eq('seat_number', String(seat))
+    .select()
+
+  if (error || !data || data.length === 0) {
+    seatState[seat].uid = old
+    renderSeats()
+    alert('❌ Reject thất bại')
+  }
+}
+
+async function loadSeats() {
+  const { data } = await sb
+    .from('seats')
+    .select('*')
+    .eq('table_id', TABLE_ID)
+
+  if (data) {
+    data.forEach(r => {
+      seatState[String(r.seat_number)].uid = r.uid
+    })
+    renderSeats()
+  }
+}
+
+/* ===== REALTIME ===== */
+sb.channel('seats-realtime')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'seats',
+      filter: `table_id=eq.${TABLE_ID}` },
+    p => {
+      seatState[p.new.seat_number].uid = p.new.uid
+      renderSeats()
+    }
+  )
+  .subscribe()
+
+/* ===== START ===== */
+renderSeats()
+loadSeats()
+window.addEventListener('resize', renderSeats)
+</script>
+
+</body>
+</html>

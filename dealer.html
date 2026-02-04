@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Dealer Login</title>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 40px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 260px;
+      padding: 10px;
+      margin-bottom: 12px;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #2ecc71;
+      color: #111;
+    }
+
+    pre {
+      margin-top: 20px;
+      background: #222;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Dealer Login</h2>
+
+  <input id="email" type="email" placeholder="Email" />
+  <br>
+  <div class="password-wrap">
+  <input
+    type="password"
+    id="password"
+    placeholder="Password"
+    autocomplete="current-password"
+  />
+
+  <span
+    class="toggle-password"
+    onclick="togglePassword()"
+    title="Show / hide password"
+  >
+    👁️
+  </span>
+</div>
+  <br>
+
+  <button id="loginBtn">Login</button>
+
+  <pre id="log">Ready.</pre>
+
+  <script>
+    console.log("Dealer app start");
+
+    const SUPABASE_URL = "https://ymtmipkmknnsqleahlmi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw";
+
+    // ⚠️ KHÔNG đặt biến là `supabase`
+    const sb = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+    const logEl = document.getElementById("log");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+
+    function log(msg) {
+      console.log(msg);
+      logEl.textContent = msg;
+    }
+
+    loginBtn.addEventListener("click", login);
+
+    async function login() {
+      log("Logging in...");
+
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+
+      if (!email || !password) {
+        log("Missing email or password");
+        return;
+      }
+
+      const { data, error } = await sb.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        log("ERROR: " + error.message);
+        return;
+      }
+
+      log(
+        "LOGIN OK\n" +
+        "User ID: " + data.user.id + "\n" +
+        "Email: " + data.user.email
+      );
+
+      // 👉 bước sau có thể redirect dealer panel
+      window.location.href = "dealer-panel.html";
+    }
+
+    console.log("Dealer login ready");
+  </script>
+
+<script>
+function togglePassword() {
+  const input = document.getElementById('password')
+  const icon = document.querySelector('.toggle-password')
+
+  if (input.type === 'password') {
+    input.type = 'text'
+    icon.textContent = '🙈'
+  } else {
+    input.type = 'password'
+    icon.textContent = '👁️'
+  }
+}
+</script>
+
+
+</body>
+</html>
