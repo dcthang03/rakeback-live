@@ -268,46 +268,63 @@ window.addEventListener('resize', renderSeats)
 /* ===== module quét QR */
 
 let qrScanner = null
+let isScanning = false
 
 function scanQRAndAssign(seatIndex) {
   const modal = document.getElementById('qrModal')
   const closeBtn = document.getElementById('closeQR')
+
   modal.style.display = 'flex'
 
-  qrScanner = new Html5Qrcode('qr-reader')
+  if (!qrScanner) {
+    qrScanner = new Html5Qrcode('qr-reader')
+  }
+
+  isScanning = true
 
   qrScanner.start(
     { facingMode: 'environment' },
-    { fps: 10, qrbox: 200 },
-  
+    {
+      fps: 12,
+      qrbox: { width: 220, height: 220 },
+      videoConstraints: {
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    },
+
     (decodedText) => {
-  qrScanner.stop()
-  modal.style.display = 'none'
+      if (!isScanning) return
+      isScanning = false
 
-  if (!decodedText) return
+      qrScanner.stop().then(() => {
+        modal.style.display = 'none'
+      })
 
-  // 👉 chỉ giữ chữ + số
-  const uid = decodedText
-    .trim()
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .toUpperCase()
+      if (!decodedText) return
 
-  if (!uid) {
-    alert('QR không hợp lệ')
-    return
-  }
+      // ⚡ xử lý UID gọn & nhanh
+      const uid = decodedText.match(/[a-zA-Z0-9]+/)?.[0]?.toUpperCase()
 
-  assignUID(seatIndex, uid)
-}
+      if (!uid) {
+        alert('QR không hợp lệ')
+        return
+      }
 
-
+      navigator.vibrate?.(30)
+      assignUID(seatIndex, uid)
+    }
   )
 
   closeBtn.onclick = () => {
-    if (qrScanner) qrScanner.stop()
+    isScanning = false
+    if (qrScanner?.isScanning) {
+      qrScanner.stop()
+    }
     modal.style.display = 'none'
   }
 }
+
 
 </script>
 
@@ -358,7 +375,7 @@ document.addEventListener('touchend', function (e) {
 
 
 <script>
-console.log('v1.336')
+console.log('v1.337')
 </script>
 
 </body>
