@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>Dealer Panel – Realtime</title>
 
 <style>
@@ -11,6 +11,15 @@ body {
   background: #0e0e11;
   color: #fff;
   font-family: system-ui, sans-serif;
+  overflow: hidden;
+  height: 100%;
+}
+
+input,
+textarea,
+select,
+button {
+  font-size: 16px;
 }
 
 .table-area {
@@ -320,6 +329,23 @@ function scanQRAndAssign(seatIndex) {
 
 
 
+<script>
+document.addEventListener('gesturestart', function (e) {
+  e.preventDefault();
+});
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (e) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+</script>
+
+
+
 
 
 <div id="qrModal" style="
@@ -348,7 +374,7 @@ function scanQRAndAssign(seatIndex) {
 
 
 <script>
-console.log('v1.222')
+console.log('v1.223')
 </script>
 
 </body>
