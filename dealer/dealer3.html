@@ -232,15 +232,17 @@ input, button { font-size: 16px; }
 
   <button id="nextHandBtn"
           onclick="nextHand()"
-          style="
-          font-size:26px;
-          padding:18px 40px;
-          background:#16a34a;
-          color:white;
-          border:none;
-          border-radius:12px;">
-      Next Hand • $0
+          style="display: none">
+    Next Hand
+ 
   </button>
+  <!-- thanh slide--> >
+  <div class="slide-container">
+  <div class="slide-track">
+    <span class="slide-text">Slide to Next Hand</span>
+    <div class="slide-thumb" id="slideThumb"></div>
+  </div>
+</div>
 
 </div>
         <!--Modal xác nhận rake =0 -->
@@ -508,7 +510,43 @@ function createSeats() {
   }
 }
 
-  
+
+// chỉ gọi click của button cũ
+ const thumb = document.getElementById('slideThumb')
+const track = thumb.parentElement
+
+let isDragging = false
+let startX = 0
+let currentX = 0
+
+const maxX = () => track.offsetWidth - thumb.offsetWidth - 4
+
+thumb.addEventListener('pointerdown', e => {
+  isDragging = true
+  startX = e.clientX - thumb.offsetLeft
+  thumb.setPointerCapture(e.pointerId)
+})
+
+document.addEventListener('pointermove', e => {
+  if (!isDragging) return
+  currentX = e.clientX - startX
+  currentX = Math.max(4, Math.min(currentX, maxX()))
+  thumb.style.left = currentX + 'px'
+})
+
+document.addEventListener('pointerup', () => {
+  if (!isDragging) return
+  isDragging = false
+
+  if (currentX > maxX() * 0.85) {
+    thumb.style.left = maxX() + 'px'
+
+    // 🔥 GỌI NÚT CŨ
+    document.getElementById('nextHandBtn').click()
+  } else {
+    thumb.style.left = '4px'
+  }
+}) 
 
  
 
@@ -753,6 +791,8 @@ async function nextHand(){
 
   await createHand();
 }
+
+
 
 // Modal control
 function openModal(){
