@@ -799,7 +799,7 @@ async function createHand() {
 
       // 3️⃣ cộng tổng rake
       const { error: sumError } = await sb.rpc(
-        "add_player_rake",
+        "add_player_rake_by_uid",
         {
           p_uid: selectedPlayerId,
           p_amount: rakeTotal
@@ -836,7 +836,7 @@ function resetUI(){
 
 
 
-console.log('dealer2.html V.207')
+console.log('dealer2.html V.208')
 </script>
 
 </body>
