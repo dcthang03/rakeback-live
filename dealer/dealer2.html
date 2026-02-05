@@ -785,29 +785,7 @@ async function createHand() {
 
     if (handError) throw handError;
 
-    // 2️⃣ log rake
-    if (rakeTotal > 0) {
-      const { error: rakeError } = await sb
-        .from("rake_logs")
-        .insert({
-          player_id: selectedPlayerId, // "A001"
-          hand_id: hand.id,
-          amount: rakeTotal
-        });
-
-      if (rakeError) throw rakeError;
-
-      // 3️⃣ cộng tổng rake
-      const { error: sumError } = await sb.rpc(
-        "add_player_rake_by_uid",
-        {
-          p_uid: selectedPlayerId,
-          p_amount: rakeTotal
-        }
-      );
-
-      if (sumError) throw sumError;
-    }
+     
 
     resetUI();
 
