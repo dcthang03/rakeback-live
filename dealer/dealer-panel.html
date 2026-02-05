@@ -270,54 +270,60 @@ window.addEventListener('resize', renderSeats)
 
 let qrScanner = null
 
-function scanQRAndAssign(seatIndex) {
+async function scanQRAndAssign(seatIndex) {
   const modal = document.getElementById('qrModal')
   const closeBtn = document.getElementById('closeQR')
+
   modal.style.display = 'flex'
 
-  // ♻️ reuse scanner – không tạo mới mỗi lần
-  if (!qrScanner) {
+  await safeStopQR()
+
+  setTimeout(async () => {
     qrScanner = new Html5Qrcode('qr-reader')
-  }
 
-  qrScanner.start(
-    {
-      facingMode: "environment",
-      width: { ideal: 640 },   // 🔥 giảm resolution → focus nhanh hơn
-      height: { ideal: 480 }
-    },
-    {
-      fps: 15,                // 🔥 tăng fps → bắt QR nhanh hơn
-      qrbox: { width: 220, height: 220 }, // 🔥 khung vuông rõ ràng
-      aspectRatio: 1.0        // 🔥 Safari ổn định hơn
-    },
+    qrScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 220, aspectRatio: 1 },
 
-    (decodedText) => {
-      qrScanner.stop()
-      modal.style.display = 'none'
+      async (decodedText) => {
+        await safeStopQR()
+        modal.style.display = 'none'
 
-      if (!decodedText) return
+        if (!decodedText) return
 
-      // 👉 chỉ giữ chữ + số
-      const uid = decodedText
-        .trim()
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .toUpperCase()
+        const uid = decodedText
+          .trim()
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .toUpperCase()
 
-      if (!uid) {
-        alert('QR không hợp lệ')
-        return
+        if (!uid) {
+          alert('QR không hợp lệ')
+          return
+        }
+
+        assignUID(seatIndex, uid)
       }
+    )
+  }, 150)
 
-      assignUID(seatIndex, uid)
-    }
-  )
-
-  closeBtn.onclick = () => {
-    if (qrScanner?.isScanning) qrScanner.stop()
+  closeBtn.onclick = async () => {
+    await safeStopQR()
     modal.style.display = 'none'
   }
 }
+
+async function safeStopQR() {
+  if (qrScanner) {
+    try {
+      if (qrScanner.isScanning) {
+        await qrScanner.stop()
+      }
+      await qrScanner.clear()
+    } catch (e) {}
+    qrScanner = null
+  }
+}
+
 
 
 </script>
@@ -369,7 +375,7 @@ document.addEventListener('touchend', function (e) {
 
 
 <script>
-console.log('v1.4b1')
+console.log('v1.4b2')
 </script>
 
 </body>
