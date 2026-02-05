@@ -437,6 +437,7 @@ const HOLD_TIME = 700
 const seatState = {}
 const seats = {}
 let holdTimer = null
+let didHold = false //thêm biến cờ
 const tableEl = document.getElementById('table')
 
 /* ===== INIT PANEL ===== */
@@ -464,8 +465,10 @@ function createSeats() {
     seat.appendChild(uidEl)
 
     seat.addEventListener('pointerdown', () => {
-      clearTimeout(holdTimer)
+      didHold = false
+        clearTimeout(holdTimer)
       holdTimer = setTimeout(() => {
+         didHold = true
         if (seatState[i].uid) {
           if (confirm(`Reject UID ${seatState[i].uid.slice(0,6)} ?`)) {
             ejectUID(i)
@@ -484,6 +487,21 @@ function createSeats() {
     tableEl.appendChild(seat)
   }
 }
+
+    // thêm click > select seat
+
+    seat.addEventListener('click', () => {
+  if (didHold) return   // nếu vừa hold thì bỏ
+
+  if (!seatState[i].uid) return
+
+  selectSeat(
+    seatState[i].uid,
+    `Seat ${i} • ${seatState[i].uid.slice(0,4)}`
+  )
+})
+
+
 
 /* ===== RENDER ===== */
 function renderSeats() {
@@ -805,7 +823,7 @@ function resetUI(){
 
 
 
-console.log('dealer2.html V.202')
+console.log('dealer2.html V.203')
 </script>
 
 </body>
