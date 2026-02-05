@@ -28,24 +28,59 @@ input, button { font-size: 16px; }
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #0e0e11;
+  z-index: 1000;
 }
 #loginBox {
-  width: 260px;
+  width: 300px;
   background: #000;
   padding: 16px;
-  border-radius: 12px;
+    border-radius: 14px;
+  text-align: center;
 }
-#loginBox input,
-#loginBox button {
+
+#loginBox select {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
+  padding: 16px;
   border-radius: 8px;
   border: none;
+  margin-bottom: 14px;
+  font-size: 16px;
 }
-#loginBox button {
+
+/* PIN */
+.pin-display {
+  display: flex;
+  justify-content: space-between;
+  margin: 16px 0;
+}
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #444;
+  border-radius: 50%;
+}
+.pin-dot.filled {
   background: #0a84ff;
+  border-color: #0a84ff;
+}
+
+/* Keypad */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.keypad button {
+  padding: 14px;
+  font-size: 18px;
+  border-radius: 10px;
+  border: none;
+  background: #1f2937;
   color: #fff;
+}
+.keypad button:active {
+  background: #374151;
 }
 
 /* ===== PANEL ===== */
@@ -106,9 +141,37 @@ input, button { font-size: 16px; }
 <!-- ===== LOGIN VIEW ===== -->
 <div id="loginView">
   <div id="loginBox">
-    <h3 style="margin:0">Dealer Login</h3>
-    <input id="tableInput" placeholder="Table ID (vd: A1)" />
-    <button id="enterBtn">Enter</button>
+    <h3 style="margin:0 0 10px">Dealer Login</h3>
+
+    <select id="tableSelect">
+      <option value="">-- Chọn bàn --</option>
+
+    </select>
+
+    <div class="pin-display">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+
+    <div class="keypad">
+      <button onclick="press(1)">1</button>
+      <button onclick="press(2)">2</button>
+      <button onclick="press(3)">3</button>
+
+      <button onclick="press(4)">4</button>
+      <button onclick="press(5)">5</button>
+      <button onclick="press(6)">6</button>
+
+      <button onclick="press(7)">7</button>
+      <button onclick="press(8)">8</button>
+      <button onclick="press(9)">9</button>
+
+      <button onclick="backPin()">←</button>
+      <button onclick="press(0)">0</button>
+      <button onclick="submitLogin()">OK</button>
+    </div>
   </div>
 </div>
 
@@ -153,24 +216,108 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
 
-/* ===== LOGIN ===== */
+
+
+/* ===== SUPABASE ===== */
+const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+loadTables()
+
+
+/* ===== LOGIN WITH PIN ===== */
 let TABLE_ID = null
+let pin = ''
 
-document.getElementById('enterBtn').onclick = () => {
-  const v = document.getElementById('tableInput').value.trim()
-  if (!v) return alert('Nhập Table ID')
+function press(n) {
+  if (pin.length >= 4) return
+  pin += n
+  updateDots()
+}
 
-  TABLE_ID = v
+function backPin() {
+  pin = pin.slice(0, -1)
+  updateDots()
+}
+
+function updateDots() {
+  document.querySelectorAll('.pin-dot').forEach((d, i) => {
+    d.classList.toggle('filled', i < pin.length)
+  })
+}
+
+/* === load tables === */
+
+async function loadTables() {
+  const { data, error } = await sb
+    .from('tables')
+    .select('table_id')
+    .eq('active', true)
+    .order('table_id')
+
+  if (error) {
+    alert('Không load được danh sách bàn')
+    return
+  }
+
+  const select = document.getElementById('tableSelect')
+
+  data.forEach(row => {
+    const opt = document.createElement('option')
+    opt.value = row.table_id        // A1
+    opt.textContent = 'Bàn ' + row.table_id
+    select.appendChild(opt)
+  })
+}
+
+
+
+
+
+async function submitLogin() {
+  const table = document.getElementById('tableSelect').value
+  if (!table) return alert('Chưa chọn bàn')
+  if (pin.length !== 4) return alert('PIN phải đủ 4 số')
+
+  const { data, error } = await sb
+    .from('tables')
+    .select('table_id, pin_hash, active')
+    .eq('table_id', table)
+    .single()
+
+  if (error || !data) {
+    resetPin()
+    return alert('Bàn không tồn tại')
+  }
+
+  if (!data.active) {
+    resetPin()
+    return alert('Bàn đang bị khóa')
+  }
+
+  // ⚠️ so sánh plain text (tạm thời)
+  if (data.pin_hash !== pin) {
+    resetPin()
+    return alert('Sai PIN')
+  }
+
+  // ✅ LOGIN OK
+  TABLE_ID = data.table_id
   document.getElementById('loginView').style.display = 'none'
   document.getElementById('panelView').style.display = 'block'
 
   initPanel()
 }
 
-/* ===== SUPABASE ===== */
-const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+function resetPin() {
+  pin = ''
+  document.querySelectorAll('.pin-dot')
+    .forEach(d => d.classList.remove('filled'))
+}
+
+
+
 
 /* ===== CONFIG ===== */
 const SEAT_COUNT = 9
@@ -222,9 +369,9 @@ function createSeats() {
       }, HOLD_TIME)
     })
 
-    seat.addEventListener('pointerup', () => clearTimeout(holdTimer))
-    seat.addEventListener('pointerleave', () => clearTimeout(holdTimer))
-    seat.addEventListener('pointercancel', () => clearTimeout(holdTimer))
+    seat.addEventListener('pointerup', ()=>clearTimeout(holdTimer))
+    seat.addEventListener('pointerleave', ()=>clearTimeout(holdTimer))
+    seat.addEventListener('pointercancel', ()=>clearTimeout(holdTimer))
 
     seats[i] = { el: seat, uidEl }
     tableEl.appendChild(seat)
@@ -252,7 +399,23 @@ function renderSeats() {
   }
 }
 
+/* ===== DB / REALTIME / QR ===== */
+/* (GIỮ NGUYÊN PHẦN CÒN LẠI CỦA BẠN – KHÔNG ĐỘNG GÌ) */
+
 /* ===== DB ===== */
+
+async function isValidPlayerUID(uid) {
+  const { data, error } = await sb
+    .from('players')
+    .select('uid')
+    .eq('uid', uid)
+    .single()
+
+  if (error || !data) return false
+  return true
+}
+
+
 async function assignUID(seat, uid) {
   seatState[seat].uid = uid
   renderSeats()
@@ -340,9 +503,20 @@ async function scanQRAndAssign(seatIndex) {
         await safeStopQR()
         modal.style.display = 'none'
 
-        const uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
-        if (!uid) return alert('QR không hợp lệ')
-        assignUID(seatIndex, uid)
+      const uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
+if (!uid) return alert('QR không hợp lệ')
+
+// 🔍 check UID trong bảng players
+const exists = await isValidPlayerUID(uid)
+if (!exists) {
+  alert('❌ UID không tồn tại trong hệ thống')
+  return
+}
+
+// ✅ UID hợp lệ → cho gán ghế
+assignUID(seatIndex, uid)
+
+
       }
     )
   }, 150)
@@ -363,7 +537,9 @@ async function safeStopQR() {
   }
 }
 
-console.log('dealer1.html – FIX FULL OK')
+
+
+console.log('dealer2.html V.102')
 </script>
 
 </body>
