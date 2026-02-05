@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Dealer – All In One (TEST)</title>
+<title>Dealer – All In One (FIX FULL)</title>
 
 <style>
 /* ===== GLOBAL LOCK ===== */
@@ -19,11 +19,9 @@ html, body {
   font-family: system-ui, sans-serif;
 }
 
-input, button {
-  font-size: 16px;
-}
+input, button { font-size: 16px; }
 
-/* ===== LOGIN VIEW ===== */
+/* ===== LOGIN ===== */
 #loginView {
   position: fixed;
   inset: 0;
@@ -31,14 +29,12 @@ input, button {
   align-items: center;
   justify-content: center;
 }
-
 #loginBox {
   width: 260px;
   background: #000;
   padding: 16px;
   border-radius: 12px;
 }
-
 #loginBox input,
 #loginBox button {
   width: 100%;
@@ -47,20 +43,19 @@ input, button {
   border-radius: 8px;
   border: none;
 }
-
 #loginBox button {
   background: #0a84ff;
   color: #fff;
 }
 
-/* ===== PANEL VIEW ===== */
+/* ===== PANEL ===== */
 #panelView {
   display: none;
   width: 100%;
   height: 100%;
 }
 
-/* ===== PANEL STYLE (GIỮ NGUYÊN) ===== */
+/* ===== TABLE ===== */
 .table-area {
   width: 100vw;
   height: 100vh;
@@ -69,7 +64,6 @@ input, button {
   justify-content: center;
   transform: translateY(-12vh);
 }
-
 .table {
   position: relative;
   width: 270px;
@@ -78,7 +72,6 @@ input, button {
   background: radial-gradient(circle, #1c1c1c, #0f0f0f 70%);
   border: 4px solid #2a2a2a;
 }
-
 .seat {
   position: absolute;
   width: 60px;
@@ -97,12 +90,10 @@ input, button {
   -webkit-touch-callout: none;
   touch-action: none;
 }
-
 .seat.occupied {
   background: #0a84ff;
   border-color: #0a84ff;
 }
-
 .seat small {
   font-size: 10px;
   opacity: .9;
@@ -112,7 +103,7 @@ input, button {
 
 <body>
 
-<!-- ===== LOGIN ===== -->
+<!-- ===== LOGIN VIEW ===== -->
 <div id="loginView">
   <div id="loginBox">
     <h3 style="margin:0">Dealer Login</h3>
@@ -121,7 +112,7 @@ input, button {
   </div>
 </div>
 
-<!-- ===== PANEL ===== -->
+<!-- ===== PANEL VIEW ===== -->
 <div id="panelView">
   <div class="table-area">
     <div class="table" id="table"></div>
@@ -139,7 +130,7 @@ input, button {
   z-index: 9999;
 ">
   <div style="width:260px;background:#000;padding:12px;border-radius:12px">
-    <div id="qr-reader" style="width:100%"></div>
+    <div id="qr-reader" style="width:100%; min-height:240px"></div>
     <button id="closeQR" style="
       width:100%;
       margin-top:10px;
@@ -162,26 +153,26 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
 
-/* ===== LOGIN LOGIC ===== */
+/* ===== LOGIN ===== */
 let TABLE_ID = null
 
 document.getElementById('enterBtn').onclick = () => {
-  const val = document.getElementById('tableInput').value.trim()
-  if (!val) return alert('Nhập Table ID')
+  const v = document.getElementById('tableInput').value.trim()
+  if (!v) return alert('Nhập Table ID')
 
-  TABLE_ID = val
+  TABLE_ID = v
   document.getElementById('loginView').style.display = 'none'
   document.getElementById('panelView').style.display = 'block'
 
   initPanel()
 }
 
-/* ===== PANEL CODE (GIỮ NGUYÊN LOGIC CỦA BẠN) ===== */
-
+/* ===== SUPABASE ===== */
 const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
+/* ===== CONFIG ===== */
 const SEAT_COUNT = 9
 const TOP_SEAT = 5
 const SEAT_SIZE = 60
@@ -192,9 +183,9 @@ const HOLD_TIME = 700
 const seatState = {}
 const seats = {}
 let holdTimer = null
-
 const tableEl = document.getElementById('table')
 
+/* ===== INIT PANEL ===== */
 function initPanel() {
   createSeats()
   renderSeats()
@@ -203,7 +194,7 @@ function initPanel() {
   window.addEventListener('resize', renderSeats)
 }
 
-/* ===== CREATE SEATS ===== */
+/* ===== SEATS ===== */
 function createSeats() {
   for (let i = 1; i <= SEAT_COUNT; i++) {
     seatState[i] = { uid: null }
@@ -245,29 +236,24 @@ function renderSeats() {
   const rect = tableEl.getBoundingClientRect()
   const cx = rect.width / 2
   const cy = rect.height / 2
-  const rX = cx - SEAT_SIZE / 2 - TABLE_BORDER - SAFE_PADDING + 50
-  const rY = cy - SEAT_SIZE / 2 - TABLE_BORDER - SAFE_PADDING + 50
+  const rX = cx - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50
+  const rY = cy - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50
 
   for (let i = 1; i <= SEAT_COUNT; i++) {
     const { el, uidEl } = seats[i]
-    const angle = (Math.PI * 2 / SEAT_COUNT) * (i - TOP_SEAT) - Math.PI / 2
+    const angle = (Math.PI*2/SEAT_COUNT)*(i-TOP_SEAT) - Math.PI/2
 
-    el.style.left = cx + Math.cos(angle) * rX + 'px'
-    el.style.top  = cy + Math.sin(angle) * rY + 'px'
-    el.style.transform = 'translate(-50%, -50%)'
+    el.style.left = cx + Math.cos(angle)*rX + 'px'
+    el.style.top  = cy + Math.sin(angle)*rY + 'px'
+    el.style.transform = 'translate(-50%,-50%)'
 
     el.classList.toggle('occupied', !!seatState[i].uid)
     uidEl.textContent = seatState[i].uid ? seatState[i].uid.slice(0,4) : ''
   }
 }
 
-/* ===== DB / REALTIME / QR ===== */
-/* 👉 giữ nguyên code của bạn, copy tiếp vào đây */
-
 /* ===== DB ===== */
-
 async function assignUID(seat, uid) {
-  // optimistic UI
   seatState[seat].uid = uid
   renderSeats()
 
@@ -278,7 +264,7 @@ async function assignUID(seat, uid) {
     .eq('seat_number', String(seat))
     .select()
 
-  if (error || !data || data.length === 0) {
+  if (error || !data?.length) {
     seatState[seat].uid = null
     renderSeats()
     alert('❌ Gán UID thất bại')
@@ -297,7 +283,7 @@ async function ejectUID(seat) {
     .eq('seat_number', String(seat))
     .select()
 
-  if (error || !data || data.length === 0) {
+  if (error || !data?.length) {
     seatState[seat].uid = old
     renderSeats()
     alert('❌ Reject thất bại')
@@ -310,35 +296,32 @@ async function loadSeats() {
     .select('*')
     .eq('table_id', TABLE_ID)
 
-  if (data) {
-    data.forEach(r => {
-      seatState[String(r.seat_number)].uid = r.uid
-    })
-    renderSeats()
-  }
+  data?.forEach(r => {
+    seatState[String(r.seat_number)].uid = r.uid
+  })
+  renderSeats()
 }
 
 /* ===== REALTIME ===== */
-sb.channel('seats-realtime')
-  .on(
-    'postgres_changes',
-    { event: '*', schema: 'public', table: 'seats',
-      filter: `table_id=eq.${TABLE_ID}` },
-    p => {
-      seatState[p.new.seat_number].uid = p.new.uid
-      renderSeats()
-    }
-  )
-  .subscribe()
+function initRealtime() {
+  sb.channel('seats-' + TABLE_ID)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'seats',
+        filter: `table_id=eq.${TABLE_ID}`
+      },
+      p => {
+        seatState[p.new.seat_number].uid = p.new.uid
+        renderSeats()
+      }
+    )
+    .subscribe()
+}
 
-/* ===== START ===== */
-renderSeats()
-loadSeats()
-window.addEventListener('resize', renderSeats)
-
-
-/* ===== module quét QR (OPTIMIZED – SAFE) ===== */
-
+/* ===== QR ===== */
 let qrScanner = null
 
 async function scanQRAndAssign(seatIndex) {
@@ -346,32 +329,19 @@ async function scanQRAndAssign(seatIndex) {
   const closeBtn = document.getElementById('closeQR')
 
   modal.style.display = 'flex'
-
   await safeStopQR()
 
   setTimeout(async () => {
     qrScanner = new Html5Qrcode('qr-reader')
-
     qrScanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: 220, aspectRatio: 1 },
-
-      async (decodedText) => {
+      async text => {
         await safeStopQR()
         modal.style.display = 'none'
 
-        if (!decodedText) return
-
-        const uid = decodedText
-          .trim()
-          .replace(/[^a-zA-Z0-9]/g, '')
-          .toUpperCase()
-
-        if (!uid) {
-          alert('QR không hợp lệ')
-          return
-        }
-
+        const uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
+        if (!uid) return alert('QR không hợp lệ')
         assignUID(seatIndex, uid)
       }
     )
@@ -386,21 +356,14 @@ async function scanQRAndAssign(seatIndex) {
 async function safeStopQR() {
   if (qrScanner) {
     try {
-      if (qrScanner.isScanning) {
-        await qrScanner.stop()
-      }
+      if (qrScanner.isScanning) await qrScanner.stop()
       await qrScanner.clear()
-    } catch (e) {}
+    } catch(e){}
     qrScanner = null
   }
 }
 
-
-
-
-
-
-console.log('dealer1.html – TEST OK')
+console.log('dealer1.html – FIX FULL OK')
 </script>
 
 </body>
