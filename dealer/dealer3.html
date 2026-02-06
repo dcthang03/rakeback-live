@@ -698,7 +698,7 @@ async function assignUID(seat, player_uid) {
     .from('seats')
     .update({ player_uid })
     .eq('table_uid', TABLE_UID)
-    .eq('seat_number', String(seat))
+    .eq('seat_number', seat)
     .select()
 
   if (error || !data?.length) {
