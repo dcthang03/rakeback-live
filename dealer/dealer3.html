@@ -463,6 +463,7 @@ async function submitLogin() {
 
   // ✅ LOGIN OK
   TABLE_ID = data.table_id
+  localStorage.setItem("table_id", TABLE_ID);
   document.getElementById('loginView').style.display = 'none'
   document.getElementById('panelView').style.display = 'block'
 
@@ -938,6 +939,7 @@ async function createHand() {
     const { data: hand, error: handError } = await sb
       .from("hands")
       .insert({
+        table_id: TABLE_ID,
         player_id: selectedPlayerId, // "A001"
         rake: rakeTotal
       })
