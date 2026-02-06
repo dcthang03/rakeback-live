@@ -512,77 +512,77 @@ function initPanel() {
 /* ===== SEATS ===== */
 function createSeats() {
   for (let i = 1; i <= SEAT_COUNT; i++) {
-    seatState[i] = { uid: null }
 
-    const seat = document.createElement('div')
-    seat.className = 'seat'
+    seatState[i] = { uid: null };
 
-    const num = document.createElement('div')
-    num.textContent = i
-    const uidEl = document.createElement('small')
+    const seat = document.createElement('div');
+    seat.className = 'seat';
 
-    seat.appendChild(num)
-    seat.appendChild(uidEl)
+    const num = document.createElement('div');
+    num.textContent = i;
 
-    seats[i] = { el: seat, uidEl };
-    tableEl.appendChild(seat);
+    const uidEl = document.createElement('small');
 
-  }
-}
+    seat.appendChild(num);
+    seat.appendChild(uidEl);
 
     // ===== HOLD (scan / eject) =====
     seat.addEventListener('pointerdown', () => {
-      didHold = false
-      clearTimeout(holdTimer)
+      didHold = false;
+      clearTimeout(holdTimer);
 
       holdTimer = setTimeout(() => {
-        didHold = true
+        didHold = true;
         if (seatState[i].uid) {
           if (confirm(`Reject UID ${seatState[i].uid.slice(0,6)} ?`)) {
-            ejectUID(i)
+            ejectUID(i);
           }
         } else {
-          scanQRAndAssign(i)
+          scanQRAndAssign(i);
         }
-      }, HOLD_TIME)
-    })
+      }, HOLD_TIME);
+    });
 
-    seat.addEventListener('pointerup', () => clearTimeout(holdTimer))
-    seat.addEventListener('pointerleave', () => clearTimeout(holdTimer))
-    seat.addEventListener('pointercancel', () => clearTimeout(holdTimer))
+    seat.addEventListener('pointerup', () => clearTimeout(holdTimer));
+    seat.addEventListener('pointerleave', () => clearTimeout(holdTimer));
+    seat.addEventListener('pointercancel', () => clearTimeout(holdTimer));
 
-    // ===== TAP (select seat) =====
+    // ===== TAP (select / unselect seat) =====
     seat.addEventListener('click', () => {
-  if (didHold) return;
-  if (!seatState[i].uid) return;
+      if (didHold) return;
+      if (!seatState[i].uid) return;
 
-  // 🔁 Click lại ghế đang chọn → bỏ chọn
-  if (selectedSeatNumber === i) {
-    selectedSeatNumber = null;
-    selectedPlayerId = null;
-    selectedSeatLabel = "";
+      // 🔁 click lại để bỏ chọn
+      if (selectedSeatNumber === i) {
+        selectedSeatNumber = null;
+        selectedPlayerId = null;
+        selectedSeatLabel = "";
 
-    rakeTotal = 0;
-    rakeHistory = [];
+        rakeTotal = 0;
+        rakeHistory = [];
 
-    const seatEl = document.getElementById("selectedSeat");
-    if (seatEl) {
-      seatEl.innerText = "No seat selected";
-    }
+        const seatEl = document.getElementById("selectedSeat");
+        if (seatEl) seatEl.innerText = "No seat selected";
 
-    renderSeats();
-    updateDisplay();
-    resetSlider();
-    return;
+        renderSeats();
+        updateDisplay();
+        resetSlider();
+        return;
+      }
+
+      // 👉 chọn ghế
+      selectSeat(
+        seatState[i].uid,
+        `Seat ${i} • ${seatState[i].uid.slice(0,4)}`,
+        i
+      );
+    });
+
+    seats[i] = { el: seat, uidEl };
+    tableEl.appendChild(seat);
   }
+}
 
-  // 👉 Chọn ghế mới
-  selectSeat(
-    seatState[i].uid,
-    `Seat ${i} • ${seatState[i].uid.slice(0,4)}`,
-    i
-  );
-});
 
 
 // chỉ gọi click của button cũ
@@ -596,12 +596,12 @@ let currentX = 0
 const maxX = () => track.offsetWidth - thumb.offsetWidth - 4
 
 thumb.addEventListener('pointerdown', e => {
-  isDragging = true
-  startX = e.clientX - thumb.offsetLeft
-  thumb.setPointerCapture(e.pointerId)
-  if (!selectedPlayerId || isSubmitting) return
+  if (!selectedPlayerId || isSubmitting) return; // ⬅️ CHẶN TRƯỚC
 
-})
+  isDragging = true;
+  startX = e.clientX - thumb.offsetLeft;
+  thumb.setPointerCapture(e.pointerId);
+});
 
 document.addEventListener('pointermove', e => {
   if (!isDragging) return
@@ -879,13 +879,17 @@ function updateDisplay(){
   if (slideText) {
     slideText.innerText = `Slide to Next Hand • $${rakeTotal}`;
   }
+
+  // ✅ FIX: update slider state đúng lúc
+  const slideTrack = document.querySelector('.slide-track');
+  if (slideTrack) {
+    slideTrack.classList.toggle(
+      'disabled',
+      !selectedPlayerId || isSubmitting
+    );
+  }
 }
 
-const slideTrack = document.querySelector('.slide-track')
-slideTrack.classList.toggle(
-  'disabled',
-  !selectedPlayerId || isSubmitting
-)
 
 
 //Next Hand
@@ -986,7 +990,7 @@ function resetUI(){
 
 
 
-console.log('dealer2.html V.209')
+console.log('dealer2.html V.210')
 </script>
 
 </body>
