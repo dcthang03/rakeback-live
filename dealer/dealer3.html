@@ -386,7 +386,7 @@ loadTables()
 
 
 /* ===== LOGIN WITH PIN ===== */
-let TABLE_ID = null
+let TABLE_UID = null
 let pin = ''
 
 function press(n) {
@@ -411,9 +411,9 @@ function updateDots() {
 async function loadTables() {
   const { data, error } = await sb
     .from('tables')
-    .select('table_id')
+    .select('table_uid')
     .eq('active', true)
-    .order('table_id')
+    .order('table_uid')
 
   if (error) {
     alert('Không load được danh sách bàn')
@@ -424,8 +424,8 @@ async function loadTables() {
 
   data.forEach(row => {
     const opt = document.createElement('option')
-    opt.value = row.table_id        // A1
-    opt.textContent = 'Bàn ' + row.table_id
+    opt.value = row.table_uid        // A1
+    opt.textContent = 'Bàn ' + row.table_uid
     select.appendChild(opt)
   })
 }
@@ -441,8 +441,8 @@ async function submitLogin() {
 
   const { data, error } = await sb
     .from('tables')
-    .select('table_id, pin_hash, active')
-    .eq('table_id', table)
+    .select('table_uid, pin_hash, active')
+    .eq('table_uid', table)
     .single()
 
   if (error || !data) {
@@ -462,8 +462,8 @@ async function submitLogin() {
   }
 
   // ✅ LOGIN OK
-  TABLE_ID = data.table_id
-  localStorage.setItem("table_id", TABLE_ID);
+  TABLE_UID = data.table_uid
+  localStorage.setItem("table_uid", TABLE_UID);
   document.getElementById('loginView').style.display = 'none'
   document.getElementById('panelView').style.display = 'block'
 
@@ -697,7 +697,7 @@ async function assignUID(seat, uid) {
   const { data, error } = await sb
     .from('seats')
     .update({ uid })
-    .eq('table_id', TABLE_ID)
+    .eq('table_uid', TABLE_UID)
     .eq('seat_number', String(seat))
     .select()
 
@@ -716,7 +716,7 @@ async function ejectUID(seat) {
   const { data, error } = await sb
     .from('seats')
     .update({ uid: null })
-    .eq('table_id', TABLE_ID)
+    .eq('table_uid', TABLE_UID)
     .eq('seat_number', String(seat))
     .select()
 
@@ -731,7 +731,7 @@ async function loadSeats() {
   const { data } = await sb
     .from('seats')
     .select('*')
-    .eq('table_id', TABLE_ID)
+    .eq('table_uid', TABLE_UID)
 
   data?.forEach(r => {
     seatState[String(r.seat_number)].uid = r.uid
@@ -741,14 +741,14 @@ async function loadSeats() {
 
 /* ===== REALTIME ===== */
 function initRealtime() {
-  sb.channel('seats-' + TABLE_ID)
+  sb.channel('seats-' + TABLE_UID)
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
         table: 'seats',
-        filter: `table_id=eq.${TABLE_ID}`
+        filter: `table_uid=eq.${TABLE_UID}`
       },
       p => {
         seatState[p.new.seat_number].uid = p.new.uid
@@ -930,7 +930,7 @@ async function confirmNoRake(){
   await createHand();
 }
 
-//Create hand nhưng chưa có table_id/dealer_id (mốt thêm sau)
+//Create hand nhưng chưa có table_uid/dealer_uid (mốt thêm sau)
 async function createHand() {
   try {
     isSubmitting = true;
@@ -939,8 +939,8 @@ async function createHand() {
     const { data: hand, error: handError } = await sb
       .from("rake_logs")
       .insert({
-        table_id: TABLE_ID,
-        player_id: selectedPlayerId, // "A001"
+        table_uid: TABLE_UID,
+        player_uid: selectedPlayerId, // "A001"
         rake: rakeTotal
       })
       .select()
