@@ -669,7 +669,7 @@ if (selectedSeatNumber === i) {
 
 
 
-    uidEl.textContent = seatState[i].uid ? seatState[i].uid.slice(0,4) : ''
+    uidEl.textContent = seatState[i].player_uid ? seatState[i].player_uid.slice(0,4) : ''
   }
 }
 
@@ -678,7 +678,7 @@ if (selectedSeatNumber === i) {
 
 /* ===== DB ===== */
 
-async function isValidPlayerUID(uid) {
+async function isValidPlayerUID(player_uid) {
   const { data, error } = await sb
     .from('players')
     .select('player_uid')
@@ -777,8 +777,8 @@ async function scanQRAndAssign(seatIndex) {
         await safeStopQR()
         modal.style.display = 'none'
 
-      const uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
-if (!uid) return alert('QR không hợp lệ')
+      const player_uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
+if (!player_uid) return alert('QR không hợp lệ')
 
 // 🔍 check UID trong bảng players
 const exists = await isValidPlayerUID(player_uid)
@@ -787,7 +787,7 @@ if (!exists) {
   return
 }
 
-// ✅ UID hợp lệ → cho gán ghế
+// ✅ PLAYER_UID hợp lệ → cho gán ghế
 assignUID(seatIndex, player_uid)
 
 
