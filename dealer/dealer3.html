@@ -282,7 +282,7 @@ input, button { font-size: 16px; }
   <!-- thanh slide--> 
   <div class="slide-container">
   <div class="slide-track">
-    <span class="slide-text">Slide to Next Hand</span>
+    <span class="slide-text" id="slideText">Slide to Next Hand</span>
     <div class="slide-thumb" id="slideThumb"></div>
   </div>
 </div>
@@ -820,15 +820,20 @@ function undoRake(){
 
 function updateDisplay(){
 
-  document.getElementById("rakeAmount")
-    .innerText = "$" + rakeTotal;
+  const rakeEl = document.getElementById("rakeAmount");
+  if (rakeEl) {
+    rakeEl.innerText = "$" + rakeTotal;
+  }
 
-  document.getElementById("nextHandBtn")
-    .innerText = `Next Hand • $${rakeTotal}`;
+  const nextBtn = document.getElementById("nextHandBtn");
+  if (nextBtn) {
+    nextBtn.innerText = `Next Hand • $${rakeTotal}`;
+  }
 
-    document.getElementById("slideText")
-  .innerText = `Slide to Next Hand • $${rakeTotal}`
-
+  const slideText = document.getElementById("slideText");
+  if (slideText) {
+    slideText.innerText = `Slide to Next Hand • $${rakeTotal}`;
+  }
 }
 
 const slideTrack = document.querySelector('.slide-track')
