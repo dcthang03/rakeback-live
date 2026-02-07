@@ -73,6 +73,12 @@ body{
   margin-bottom:8px;
 }
 
+.uid-dash{
+  color:#475569;
+  margin:0 6px;
+  font-weight:500;
+}
+
 .subtitle{
   text-align:center;
   color:#94a3b8;
@@ -108,7 +114,12 @@ label{
 .uid-prefix{
   color:#94a3b8;
   font-weight:500;
-  letter-spacing:1px;
+  letter-spacing:1.5px;
+    background:rgba(99,102,241,0.15);
+  padding:4px 8px;
+  border-radius:6px;
+
+
 }
 
 /* INPUT */
@@ -209,10 +220,11 @@ button:hover{
 
     <div class="uid-wrap">
       <span class="uid-prefix">AG</span>
+      <span class="uid-dash">-</span>
 
       <input
         id="agentUidInput"
-        placeholder="01"
+        placeholder="xx"
         inputmode="numeric"
         pattern="[0-9]*"
         autocomplete="off"
