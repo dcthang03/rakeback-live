@@ -165,7 +165,9 @@ body{
       <thead>
         <tr>
           <th>Player ID</th>
+          
           <th id="tableMetric">This Week Rake</th>
+          
         </tr>
       </thead>
       <tbody id="playersBody"></tbody>
@@ -271,6 +273,11 @@ async function attachWeeklyRake(players){
   players.forEach(p=>{
     p.this_week = 0;
     p.last_week = 0;
+
+    // ⭐ NEW
+    p.last_activity = null;
+    p.last_rake = 0;
+
     map[p.player_uid] = p;
   });
 
@@ -286,6 +293,16 @@ async function attachWeeklyRake(players){
 
     if(date >= lastWeek.start && date <= lastWeek.end)
       player.last_week += Number(log.rake);
+
+    // ⭐ LAST ACTIVITY
+    if(
+      !player.last_activity ||
+      date > new Date(player.last_activity)
+    ){
+      player.last_activity = log.created_at;
+      player.last_rake = Number(log.rake);
+    }
+
   });
 
   return players;
@@ -358,6 +375,48 @@ async function saveNote(player_uid, note){
       onConflict:"agent_uid,player_uid"
     });
 }
+
+// ====== FORMATTER +rake theo thời gian ======
+
+function formatLastActivity(player){
+
+  if(!player.last_activity) return "";
+
+  const diffMin =
+    (Date.now() - new Date(player.last_activity)) / 60000;
+
+  // > 2h → biến mất
+  if(diffMin >= 120) return "";
+
+  const amount = `+$${player.last_rake}`;
+
+  // < 1 phút
+  if(diffMin < 1){
+
+    const time =
+      new Date(player.last_activity)
+      .toLocaleTimeString([],{
+        hour:'2-digit',
+        minute:'2-digit'
+      });
+
+    return `${amount} ${time}`;
+  }
+
+  if(diffMin < 60)
+    return `${amount} ${Math.floor(diffMin)}m ago`;
+
+  return `${amount} ${Math.floor(diffMin/60)}h ago`;
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -438,6 +497,7 @@ function renderTable(){
     <tr>
       <th>Player ID</th>
       <th>${metricText}</th>
+      <th>Last Activity</th> 
     </tr>
   `;
 
@@ -465,10 +525,13 @@ function renderTable(){
       <tr>
         <td>${p.player_uid}</td>
         <td>$${Number(value||0).toLocaleString()}</td>
+        <td style="color:#4ade80;font-weight:600;width:140px;"> ${formatLastActivity(p)} </td>
+
       </tr>
     `;
   }).join("");
 }
+
 
 
 
@@ -493,8 +556,8 @@ async function loadDashboard(){
 
   totalPlayersEl.innerHTML =
     onlineCount > 0
-      ? `<span style="color:#4ade80">🟢 ${onlineCount}</span> / ${players.length}`
-      : `<span style="color:#9ca3af">⚫ 0 </span> / ${players.length}`;
+      ? `<span style="color:#4ade80"> ${onlineCount}</span> / ${players.length}`
+      : `<span style="color:#9ca3af"> 0 </span> / ${players.length}`;
 
   const total = players.reduce((s,p)=>s+(p.total_rake||0),0);
   const thisWeek = players.reduce((s,p)=>s+(p.this_week||0),0);
@@ -542,6 +605,8 @@ function logout(){
 
 // START
 loadDashboard();
+
+setInterval(renderTable, 60000);
 
 </script>
 
