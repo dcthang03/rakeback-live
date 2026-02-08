@@ -387,8 +387,8 @@ function renderTable(){
       <td>${p.player_uid}</td>
         <td>
   ${p.is_online
-    ? "🎮 Playing"
-    : "⚫ Idle"}
+    ? "🎮"
+    : "💤"}
 </td>
 
 
@@ -494,7 +494,7 @@ async function loadDashboard(){
   totalPlayersEl.innerHTML =
     onlineCount > 0
       ? `<span style="color:#4ade80">🟢 ${onlineCount}</span> / ${players.length}`
-      : `0 / ${players.length}`;
+      : `<span style="color:#9ca3af">⚫ 0 </span> / ${players.length}`;
 
   const total = players.reduce((s,p)=>s+(p.total_rake||0),0);
   const thisWeek = players.reduce((s,p)=>s+(p.this_week||0),0);
