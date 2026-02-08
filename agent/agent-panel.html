@@ -304,7 +304,7 @@ async function attachPlayerState(players){
   const { data: sessions } = await sb
     .from("player_sessions")
     .select("player_uid,is_online")
-    .eq("agent_uid", agent_uid);
+    
 
   // ⭐ LẤY POSITION TỪ SEATS
   const { data: seats } = await sb
@@ -321,7 +321,12 @@ async function attachPlayerState(players){
   const seatMap = {};
   const noteMap = {};
 
-  sessions?.forEach(s => sessionMap[s.player_uid] = s);
+  sessions?.forEach(s => {
+  sessionMap[String(s.player_uid)] = s;
+});
+
+
+
   notes?.forEach(n => noteMap[n.player_uid] = n.note);
 
   // map seat
@@ -334,7 +339,8 @@ async function attachPlayerState(players){
 
   players.forEach(p=>{
 
-    p.is_online = sessionMap[p.player_uid]?.is_online || false;
+    p.is_online =
+  sessionMap[String(p.player_uid)]?.is_online === true;
 
     // ⭐ TABLE-SEAT COMBINED
     p.table_position = seatMap[p.player_uid] || "-";
@@ -490,15 +496,14 @@ async function loadDashboard(){
 
   allPlayers = players;
 
-    const onlineCount =
-  players.filter(p=>p.is_online).length;
+  // ⭐ CHỈ KHAI BÁO 1 LẦN
+  const onlineCount =
+    players.filter(p => p.is_online === true).length;
 
-totalPlayersEl.innerText =
-  `${players.length} (${onlineCount} online)`;
-
-  
-
-  totalPlayersEl.innerText = players.length;
+  totalPlayersEl.innerHTML =
+    onlineCount > 0
+      ? `<span style="color:#4ade80">🟢 ${onlineCount}</span> / ${players.length}`
+      : `0 / ${players.length}`;
 
   const total = players.reduce((s,p)=>s+(p.total_rake||0),0);
   const thisWeek = players.reduce((s,p)=>s+(p.this_week||0),0);
@@ -510,6 +515,7 @@ totalPlayersEl.innerText =
 
   renderTable();
 }
+
 
 
 
