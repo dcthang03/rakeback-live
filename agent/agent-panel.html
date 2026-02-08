@@ -648,7 +648,8 @@ sb.channel('seats-live')
     event: 'UPDATE',
     schema: 'public',
     table: 'seats',
-    filter: 'player_uid=not.is.null'
+    filter: `agent_uid=eq.${agent_uid}`
+    
   },
   payload => {
 
