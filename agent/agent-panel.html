@@ -299,70 +299,45 @@ async function attachWeeklyRake(players){
 
 async function attachPlayerState(players){
 
-  // ONLINE STATUS (optional nếu bạn vẫn muốn giữ)
-
-    
-
-  // ⭐ LẤY POSITION TỪ SEATS
   const { data: seats } = await sb
-  .from("seats")
-  .select("player_uid,table_uid,seat_number")
-  .not("player_uid","is",null);
+    .from("seats")
+    .select("player_uid,table_uid,seat_number")
+    .not("player_uid","is",null);
 
   const { data: notes } = await sb
     .from("agent_player_notes")
     .select("player_uid,note")
     .eq("agent_uid", agent_uid);
 
-
   const seatMap = {};
   const noteMap = {};
 
-  
+  notes?.forEach(n => {
+    noteMap[String(n.player_uid)] = n.note;
+  });
 
-
-
-  notes?.forEach(n => noteMap[n.player_uid] = n.note);
-
-  // map seat
-seats?.forEach(seat=>{
-  if(seat.player_uid){
-
-    const uid = String(seat.player_uid);
-
-    seatMap[uid] = {
-      table: `${seat.table_uid}-${seat.seat_number}`,
-      online: true
-    };
-  }
-});
-
-
-
-
+  seats?.forEach(seat=>{
+    if(seat.player_uid){
+      const uid = String(seat.player_uid);
+      seatMap[uid] = {
+        table: `${seat.table_uid}-${seat.seat_number}`,
+        online: true
+      };
+    }
+  });
 
   players.forEach(p=>{
 
-    const seatData =
-  seatMap[String(p.player_uid)];
+    const seatData = seatMap[String(p.player_uid)];
 
-p.is_online = Boolean(seatData);
-
-p.table_position =
-  seatData?.table || "-";
-
-p.note = noteMap[p.player_uid] || "";
-
- 
-
-    // ⭐ TABLE-SEAT COMBINED
-    p.table_position = seatMap[p.player_uid] || "-";
-
-    p.note = noteMap[p.player_uid] || "";
+    p.is_online = Boolean(seatData);
+    p.table_position = seatData?.table || "-";
+    p.note = noteMap[String(p.player_uid)] || "";
   });
 
   return players;
 }
+
 
 
 
