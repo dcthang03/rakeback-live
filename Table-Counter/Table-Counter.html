@@ -6,6 +6,19 @@
 <title>Table Counter</title>
 
 <style>
+/* ✅ Anti copy/select (trừ input/select/textarea) */
+*{
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea, select{
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* ===== GLOBAL LOCK ===== */
 html, body {
   margin: 0;
@@ -18,7 +31,6 @@ html, body {
   color: #fff;
   font-family: system-ui, sans-serif;
 }
-
 input, button { font-size: 16px; }
 
 /* ===== LOGIN ===== */
@@ -35,10 +47,9 @@ input, button { font-size: 16px; }
   width: 300px;
   background: #000;
   padding: 16px;
-    border-radius: 14px;
+  border-radius: 14px;
   text-align: center;
 }
-
 #loginBox select {
   width: 100%;
   padding: 16px;
@@ -79,25 +90,13 @@ input, button { font-size: 16px; }
   background: #1f2937;
   color: #fff;
 }
-.keypad button:active {
-  background: #374151;
-}
+.keypad button:active { background: #374151; }
 
 /* ===== PANEL ===== */
-#panelView {
-  display: none;
-  width: 100%;
-  height: 100%;
-}
+#panelView { display: none; width: 100%; height: 100%; }
 
-/* ===== Chia App làm 2 =====*/
-.app{
-  display:flex;
-  flex-direction:column;
-  height:100dvh;
-}
-
-/* ===== Control Panel====*/
+/* ===== layout ===== */
+.app{ display:flex; flex-direction:column; height:100dvh; }
 .control-panel{
   flex:4;
   background:#111;
@@ -106,21 +105,23 @@ input, button { font-size: 16px; }
   border-top:3px solid #222;
   border-radius:18px 18px 0 0;
   box-shadow:0 -8px 30px rgba(0,0,0,.45);
-
 }
-
-
-/* ===== TABLE ===== */
-.table-area {
+.table-area{
   flex:6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.table-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+  width:100%;
 }
 
-
-.table {
+.table{
   position: relative;
   width: 270px;
   height: 190px;
@@ -128,83 +129,87 @@ input, button { font-size: 16px; }
   background: radial-gradient(circle, #1c1c1c, #0f0f0f 70%);
   border: 4px solid #2a2a2a;
 }
-.seat {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #1f2937;
-  border: 2px solid #374151;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: none;
+
+/* Dealer button */
+.dealer-btn{
+  position:relative;
+  border:none;
+  cursor:pointer;
+    margin-top: 20px; 
+  padding:12px 16px;
+  width:min(360px, 92%);
+  border-radius:18px;
+  color:#fff;
+  font-weight:800;
+  letter-spacing:.2px;
+  transform: translateY(10px);
+  transition: transform .12s ease, filter .12s ease, opacity .12s ease;
+  box-shadow:
+    0 14px 30px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -10px 20px rgba(0,0,0,0.25);
 }
-.seat.occupied {
-  background: #0a84ff;
-  border-color: #0a84ff;
+.dealer-btn:active{ transform: translateY(12px); filter: brightness(0.98); }
+.dealer-btn.red{ background: linear-gradient(180deg, rgba(239,68,68,0.95), rgba(185,28,28,0.92)); }
+.dealer-btn.green{ background: linear-gradient(180deg, rgba(34,197,94,0.92), rgba(21,128,61,0.90)); }
+.dealer-btn .sub{ display:block; font-size:12px; font-weight:700; opacity:.85; margin-top:4px; }
+.dealer-btn .progressBar{
+  position:absolute; left:10px; right:10px; bottom:8px;
+  height:6px; border-radius:999px;
+  background: rgba(255,255,255,0.16);
+  overflow:hidden;
+  opacity:0;
+  pointer-events:none;
 }
-.seat small {
-  font-size: 10px;
-  opacity: .9;
+.dealer-btn.holding .progressBar{ opacity:1; }
+.dealer-btn .progressFill{
+  height:100%; width:0%;
+  border-radius:999px;
+  background: rgba(255,255,255,0.92);
 }
 
-.seat.selected {
-  background: #f59e0b;      /* vàng cam */
-  border-color: #fbbf24;
-  color: #000;
-  box-shadow: 0 0 0 3px rgba(245,158,11,.4);
+/* Seats */
+.seat{
+  position:absolute;
+  width:60px; height:60px;
+  border-radius:50%;
+  background:#1f2937;
+  border:2px solid #374151;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
+  cursor:pointer;
+  touch-action:none;
+}
+.seat.occupied{ background:#0a84ff; border-color:#0a84ff; }
+.seat small{ font-size:10px; opacity:.9; }
+.seat.selected{
+  background:#f59e0b;
+  border-color:#fbbf24;
+  color:#000;
+  box-shadow:0 0 0 3px rgba(245,158,11,.4);
 }
 
-.slide-container {
-  width: 100%;
-  max-width: 360px;
-  margin: 16px auto;
-}
-
-.slide-track {
-  position: relative;
-  height: 54px;
-  background: #222;
-  border-radius: 30px;
-  overflow: hidden;
-  user-select: none;
-}
-
+.slide-container { width: 100%; max-width: 360px; margin: 16px auto; }
+.slide-track { position: relative; height: 54px; background: #222; border-radius: 30px; overflow: hidden; }
 .slide-text {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  color: #aaa;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
+  position:absolute; width:100%; height:100%;
+  color:#aaa; font-size:16px;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
 }
-
-.slide-thumb {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 46px;
-  height: 46px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  cursor: pointer;
-  touch-action: none;
+.slide-thumb{
+  position:absolute; top:4px; left:4px;
+  width:46px; height:46px;
+  background:#fff;
+  border-radius:50%;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  cursor:pointer;
+  touch-action:none;
 }
-
-.slide-track.disabled {
-  opacity: .4;
-}
+.slide-track.disabled{ opacity:.4; }
 
 #tableNameLabel{
   position:absolute;
@@ -217,14 +222,66 @@ input, button { font-size: 16px; }
   letter-spacing:1px;
   color:rgba(255,255,255,0.35);
   pointer-events:none;
-  user-select:none;
-  z-index: 10; /* ✅ thêm dòng này */
+  z-index:10;
 }
 
-
-
-
-
+/* Dealer modal */
+#dealerModal{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.72);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9998;
+  padding:16px;
+}
+#dealerModal .box{
+  width:min(420px, 100%);
+  background:#0b1220;
+  border:1px solid rgba(255,255,255,0.10);
+  border-radius:18px;
+  box-shadow:0 25px 70px rgba(0,0,0,0.55);
+  padding:14px;
+}
+#dealerModal .head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+#dealerModal .title{ font-size:16px; font-weight:900; color:#e5e7eb; }
+#dealerModal .x{
+  border:none; cursor:pointer;
+  background:transparent;
+  color:#94a3b8;
+  font-size:18px;
+  padding:6px 10px;
+  border-radius:10px;
+}
+#dealerModal .x:hover{ background: rgba(255,255,255,0.06); }
+#dealerModal label{
+  display:block;
+  margin:10px 2px 6px;
+  font-size:12px;
+  font-weight:700;
+  color:#94a3b8;
+}
+#dealerModal select, #dealerModal input{
+  width:100%;
+  padding:12px 12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color:#fff;
+  outline:none;
+  font-size:14px;
+}
+#dealerModal input::placeholder{ color:#94a3b8; }
+#dealerModal .hint{ margin-top:8px; font-size:12px; color:#94a3b8; text-align:center; }
+#dealerModal .err{
+  display:none; margin-top:10px; text-align:center;
+  font-size:12px; color:#fca5a5; font-weight:900;
+}
 </style>
 </head>
 
@@ -237,7 +294,6 @@ input, button { font-size: 16px; }
 
     <select id="tableSelect">
       <option value="">-- table select --</option>
-
     </select>
 
     <div class="pin-display">
@@ -269,93 +325,84 @@ input, button { font-size: 16px; }
 
 <!-- ===== PANEL VIEW ===== -->
 <div id="panelView">
-    <div class="app">
-        <div class="table-area">
-            <div class="table" id="table">
-              <div id="tableNameLabel"></div>
-            </div>
+  <div class="app">
+    <div class="table-area">
+      <div class="table-wrap">
+        <div class="table" id="table">
+          <div id="tableNameLabel"></div>
         </div>
 
-        <div class="control-panel">
-          <!-- rake panel đặt ở đây -->
-            <div id="rakePanel" style="text-align:center; margin-top:20px;">
-
-  <div id="selectedSeat" style="font-size:22px; font-weight:600;">
-    No seat selected
-  </div>
-
-  <div id="rakeAmount" style="
-      font-size:72px;
-      font-weight:800;
-      margin:20px 0;">
-      $0
-  </div>
-
-  <button class="rake-btn" onclick="addRake(1)">+$1</button>
-  <button class="rake-btn" onclick="addRake(5)">+$5</button>
-  <button class="rake-btn" onclick="undoRake()">← Back</button>
-
-  <br><br>
-
-  <button id="nextHandBtn"
-          onclick="nextHand()"
-          style="display: none">
-    Next Hand
- 
-  </button>
-  <!-- thanh slide--> 
-  <div class="slide-container">
-  <div class="slide-track">
-    <span class="slide-text" id="slideText">Slide to Next Hand</span>
-    <div class="slide-thumb" id="slideThumb"></div>
-  </div>
-</div>
-
-</div>
-        <!--Modal xác nhận rake =0 -->
-        <div id="noRakeModal" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-right:0;
-bottom:0;
-background:rgba(0,0,0,0.6);
-align-items:center;
-justify-content:center;">
-
-  <div style="
-  background:white;
-  padding:40px;
-  border-radius:16px;
-  text-align:center;">
-
-    <h2>NO RAKE</h2>
-    <p>Close this hand with $0?</p>
-
-    <button onclick="confirmNoRake()"
-      style="font-size:20px; padding:12px 24px;">
-      Next Hand
-    </button>
-
-    <button onclick="closeModal()"
-      style="font-size:20px; padding:12px 24px;">
-      Back
-    </button>
-
-  </div>
-</div>
-
-        
-        
-        </div>
-
+        <button id="dealerBtn" class="dealer-btn red" type="button">
+          Dealer: NOT LOGGED IN
+          <span class="sub">Tap to login • Hold 0.7s to logout</span>
+          <span class="progressBar"><span id="dealerProgress" class="progressFill"></span></span>
+        </button>
+      </div>
     </div>
 
+    <div class="control-panel">
+      <div id="rakePanel" style="text-align:center; margin-top:20px;">
+        <div id="selectedSeat" style="font-size:22px; font-weight:600;">No seat selected</div>
 
+        <div id="rakeAmount" style="font-size:72px; font-weight:800; margin:20px 0;">$0</div>
 
+        <button class="rake-btn" onclick="addRake(1)">+$1</button>
+        <button class="rake-btn" onclick="addRake(5)">+$5</button>
+        <button class="rake-btn" onclick="undoRake()">← Back</button>
 
+        <br><br>
 
+        <button id="nextHandBtn" onclick="nextHand()" style="display:none">Next Hand</button>
+
+        <div class="slide-container">
+          <div class="slide-track">
+            <span class="slide-text" id="slideText">Slide to Next Hand</span>
+            <div class="slide-thumb" id="slideThumb"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="noRakeModal" style="
+        display:none;
+        position:fixed;
+        top:0;left:0;right:0;bottom:0;
+        background:rgba(0,0,0,0.6);
+        align-items:center;
+        justify-content:center;">
+
+        <div style="background:white; padding:40px; border-radius:16px; text-align:center;">
+          <h2>NO RAKE</h2>
+          <p>Close this hand with $0?</p>
+
+          <button onclick="confirmNoRake()" style="font-size:20px; padding:12px 24px;">Next Hand</button>
+          <button onclick="closeModal()" style="font-size:20px; padding:12px 24px;">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEALER MODAL ===== -->
+<div id="dealerModal">
+  <div class="box">
+    <div class="head">
+      <div class="title">Dealer Login</div>
+      <button class="x" id="dealerModalClose" type="button">✕</button>
+    </div>
+
+    <label>Select dealer</label>
+    <select id="dealerSelect">
+      <option value="">Loading…</option>
+    </select>
+
+    <div id="dealerPinBox" style="display:none;">
+      <label>Enter 4-digit PIN</label>
+      <input id="dealerPinInput" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="one-time-code" />
+      <div class="hint">Đủ 4 số sẽ tự xác nhận</div>
+    </div>
+
+    <div class="err" id="dealerErr">❌ Wrong PIN</div>
+  </div>
 </div>
 
 <!-- ===== QR MODAL ===== -->
@@ -387,81 +434,166 @@ justify-content:center;">
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
+/* ✅ extra anti copy (mobile) */
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+
 /* ===== LOCK ZOOM ===== */
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
 
+/* ===== CONFIG ===== */
+const HOLD_TIME = 700;
+const SEAT_COUNT = 9;
+const TOP_SEAT = 5;
+const SEAT_SIZE = 60;
+const TABLE_BORDER = 4;
+const SAFE_PADDING = 8;
 
+/* ===== APP STATE (✅ đặt lên trên để không lỗi hoisting) ===== */
+let rakeTotal = 0;
+let rakeHistory = [];
+let selectedPlayerId = null;
+let selectedSeatLabel = "";
+let selectedSeatNumber = null;
+let isSubmitting = false;
+
+let TABLE_UID = null;
+let pin = '';
+
+const seatState = {};
+const seats = {};
+let holdTimer = null;
+let didHold = false;
+
+let DEALER_UID = null;
+let DEALER_NAME = null;
+
+let qrScanner = null;
 
 /* ===== SUPABASE ===== */
 const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltdG1pcGtta25uc3FsZWFobG1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwOTU1MjUsImV4cCI6MjA4NTY3MTUyNX0.7pEza-TKBKJ_xqdBu93nLo-PRaHDcDIxW-bjZnrFJxw'
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-loadTables()
+/* ===== DOM ===== */
+const tableEl = document.getElementById('table');
+const dealerBtn = document.getElementById('dealerBtn');
+const dealerProgress = document.getElementById('dealerProgress');
+const dealerModal = document.getElementById('dealerModal');
+const dealerModalClose = document.getElementById('dealerModalClose');
+const dealerSelect = document.getElementById('dealerSelect');
+const dealerPinBox = document.getElementById('dealerPinBox');
+const dealerPinInput = document.getElementById('dealerPinInput');
+const dealerErr = document.getElementById('dealerErr');
 
+const thumb = document.getElementById('slideThumb');
+const track = thumb.parentElement;
 
-/* ===== LOGIN WITH PIN ===== */
-let TABLE_UID = null
-let pin = ''
+/* ===== helpers ===== */
+function isDealerLoggedIn(){ return !!(DEALER_UID && DEALER_NAME); }
+
+function updateDisplay(){
+  const rakeEl = document.getElementById("rakeAmount");
+  if (rakeEl) rakeEl.innerText = "$" + (rakeTotal || 0);
+
+  const nextBtn = document.getElementById("nextHandBtn");
+  if (nextBtn) nextBtn.innerText = `Next Hand • $${rakeTotal || 0}`;
+
+  const slideText = document.getElementById("slideText");
+  if (slideText) slideText.innerText = `Slide to Next Hand • $${rakeTotal || 0}`;
+
+  const slideTrack = document.querySelector('.slide-track');
+  if (slideTrack) {
+    slideTrack.classList.toggle(
+      'disabled',
+      !isDealerLoggedIn() || !selectedPlayerId || isSubmitting
+    );
+  }
+}
+
+function setDealerUI(){
+  if (isDealerLoggedIn()){
+    dealerBtn.classList.remove('red');
+    dealerBtn.classList.add('green');
+    dealerBtn.childNodes[0].textContent = `Dealer: ${DEALER_NAME}\n          `;
+  } else {
+    dealerBtn.classList.remove('green');
+    dealerBtn.classList.add('red');
+    dealerBtn.childNodes[0].textContent = `Dealer: NOT LOGGED IN\n          `;
+  }
+  updateDisplay();
+}
+
+function requireDealer(){
+  if (isDealerLoggedIn()) return true;
+  alert("Dealer login required");
+  openDealerModal();
+  return false;
+}
+
+/* ===== TABLE LOGIN ===== */
+loadTables();
 
 function press(n) {
   if (pin.length >= 4) return;
-
   pin += n;
   updateDots();
-
-  // ✅ Auto login khi đủ 4 số (nếu đã chọn bàn)
   if (pin.length === 4) {
     const table = document.getElementById('tableSelect')?.value;
     if (table) submitLogin();
   }
 }
-
-function backPin() {
-  pin = pin.slice(0, -1)
-  updateDots()
-}
-
+function backPin() { pin = pin.slice(0, -1); updateDots(); }
 function updateDots() {
   document.querySelectorAll('.pin-dot').forEach((d, i) => {
     d.classList.toggle('filled', i < pin.length)
   })
 }
 
-/* === load tables === */
-
 async function loadTables() {
-  const { data, error } = await sb
-    .from('tables')
-    .select('table_uid, table_name')
-    .eq('active', true)
-    .order('table_uid')
+  try {
+    const { data, error } = await sb
+      .from('tables')
+      .select('table_uid, table_name')
+      .eq('active', true)
+      .order('table_uid');
 
-  if (error) {
-    alert('Không load được danh sách bàn')
-    return
+    if (error) {
+      console.error("loadTables error:", error);
+      alert("Không load được danh sách bàn: " + (error.message || "unknown"));
+      return;
+    }
+
+    const select = document.getElementById('tableSelect');
+    while (select.options.length > 1) select.remove(1);
+
+    (data || []).forEach(row => {
+      const name = (row.table_name || '').trim();
+      const opt = document.createElement('option');
+      opt.value = row.table_uid;
+      opt.textContent = name ? name : row.table_uid;
+      select.appendChild(opt);
+    });
+
+    if (!data?.length) {
+      alert("Không có bàn active=true hoặc bị chặn quyền đọc (RLS).");
+    }
+  } catch (e) {
+    console.error("loadTables exception:", e);
+    alert("Không load được danh sách bàn (exception). Mở Console xem lỗi.");
   }
-
-  const select = document.getElementById('tableSelect')
-
-  while (select.options.length > 1) select.remove(1)
-
-  data.forEach(row => {
-    const name = (row.table_name || '').trim()
-    const opt = document.createElement('option')
-    opt.value = row.table_uid
-    opt.dataset.tableName = name || row.table_uid   // ✅ lưu tên thật
-    opt.textContent = name ? name : row.table_uid   // ✅ fallback nếu name rỗng
-    select.appendChild(opt)
-  })
 }
+
+
+
+
+
 
 document.getElementById('tableSelect').addEventListener('change', () => {
   if (pin.length === 4) submitLogin();
 });
-
 
 async function submitLogin() {
   const table = document.getElementById('tableSelect').value
@@ -474,81 +606,196 @@ async function submitLogin() {
     .eq('table_uid', table)
     .single()
 
-  if (error || !data) {
-    resetPin()
-    return alert('Bàn không tồn tại')
-  }
+  if (error || !data) { resetPin(); return alert('Bàn không tồn tại') }
+  if (!data.active) { resetPin(); return alert('Bàn đang bị khóa') }
+  if (data.pin_hash !== pin) { resetPin(); return alert('Sai PIN') }
 
-  if (!data.active) {
-    resetPin()
-    return alert('Bàn đang bị khóa')
-  }
-
-  // ⚠️ so sánh plain text (tạm thời)
-  if (data.pin_hash !== pin) {
-    resetPin()
-    return alert('Sai PIN')
-  }
-
-  // ✅ LOGIN OK
   TABLE_UID = data.table_uid
-  localStorage.setItem("table_uid", TABLE_UID);
+
   document.getElementById('loginView').style.display = 'none'
   document.getElementById('panelView').style.display = 'block'
 
-  // 👇 SET TABLE NAME VÀO GIỮA BÀN
-const selectedOption = document
-  .getElementById('tableSelect')
-  .selectedOptions[0];
-
-document.getElementById('tableNameLabel').innerText =
-  selectedOption?.textContent || TABLE_UID;
-
+  const selectedOption = document.getElementById('tableSelect').selectedOptions[0];
+  document.getElementById('tableNameLabel').innerText = selectedOption?.textContent || TABLE_UID;
 
   initPanel()
+  resetPin()
 }
 
 function resetPin() {
   pin = ''
-  document.querySelectorAll('.pin-dot')
-    .forEach(d => d.classList.remove('filled'))
+  document.querySelectorAll('.pin-dot').forEach(d => d.classList.remove('filled'))
 }
 
-
-/* ===== CONFIG ===== */
-const SEAT_COUNT = 9
-const TOP_SEAT = 5
-const SEAT_SIZE = 60
-const TABLE_BORDER = 4
-const SAFE_PADDING = 8
-const HOLD_TIME = 700
-
-// Biến global
-let rakeTotal = 0;
-let rakeHistory = [];
-let selectedPlayerId = null;
-let selectedSeatLabel = "";
-let selectedSeatNumber = null; //chọn ghế
-let isSubmitting = false;
-
-const seatState = {}
-const seats = {}
-let holdTimer = null
-let didHold = false //thêm biến cờ
-const tableEl = document.getElementById('table')
-
-/* ===== INIT PANEL ===== */
-function initPanel() {
-  createSeats()
-  renderSeats()
-  loadSeats()
-  initRealtime()
-  window.addEventListener('resize', renderSeats)
+/* ===== DEALER MODAL ===== */
+function resetDealerModalUI(){
+  dealerSelect.value = "";
+  dealerSelect.innerHTML = `<option value="">Loading…</option>`;
+  dealerPinBox.style.display = "none";
+  dealerPinInput.value = "";
+  dealerErr.style.display = "none";
 }
 
-/* ===== SEATS ===== */
-function createSeats() {
-  for (let i = 1; i <= SEAT_COUNT; i++) {
+async function loadDealersForModal(){
+  resetDealerModalUI();
+
+  const { data, error } = await sb.rpc('list_dealers');
+  if (error) {
+    dealerSelect.innerHTML = `<option value="">Load failed</option>`;
+    console.error(error);
+    return;
+  }
+
+  const rows = data || [];
+  if (!rows.length){
+    dealerSelect.innerHTML = `<option value="">No dealers</option>`;
+    return;
+  }
+
+  dealerSelect.innerHTML =
+    `<option value="">— Select dealer —</option>` +
+    rows.map(d => `<option value="${String(d.dealer_uid)}">${String(d.dealer_name||"")}</option>`).join("");
+}
+
+function openDealerModal(){
+  dealerModal.style.display = "flex";
+  loadDealersForModal();
+}
+function closeDealerModal(){
+  dealerModal.style.display = "none";
+  resetDealerModalUI();
+}
+
+dealerModalClose.addEventListener('click', closeDealerModal);
+dealerModal.addEventListener('click', (e) => {
+  if (e.target === dealerModal) closeDealerModal();
+});
+
+dealerSelect.addEventListener('change', () => {
+  dealerErr.style.display = "none";
+  if (!dealerSelect.value){
+    dealerPinBox.style.display = "none";
+    dealerPinInput.value = "";
+    return;
+  }
+  dealerPinBox.style.display = "block";
+  dealerPinInput.value = "";
+  setTimeout(() => dealerPinInput.focus(), 0);
+});
+
+dealerPinInput.addEventListener('input', async () => {
+  dealerErr.style.display = "none";
+  dealerPinInput.value = dealerPinInput.value.replace(/\D/g,'').slice(0,4);
+
+  if (!dealerSelect.value) return;
+  if (dealerPinInput.value.length !== 4) return;
+
+  const { data, error } = await sb.rpc('verify_dealer_pin', {
+    p_dealer_uid: dealerSelect.value,
+    p_pin: dealerPinInput.value
+  });
+
+  if (error) {
+    console.error(error);
+    dealerErr.textContent = "❌ Verify failed";
+    dealerErr.style.display = "block";
+    dealerPinInput.value = "";
+    dealerPinInput.focus();
+    return;
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row?.ok) {
+    DEALER_UID = row.dealer_uid;
+    DEALER_NAME = row.dealer_name;
+
+    localStorage.setItem("dealer_uid", DEALER_UID);
+    localStorage.setItem("dealer_name", DEALER_NAME);
+
+    setDealerUI();
+    closeDealerModal(); // ✅ đóng ngay
+  } else {
+    dealerErr.textContent = "❌ Wrong PIN";
+    dealerErr.style.display = "block";
+    dealerPinInput.value = "";
+    dealerPinInput.focus();
+  }
+});
+
+function dealerLogout(){
+  DEALER_UID = null;
+  DEALER_NAME = null;
+  localStorage.removeItem("dealer_uid");
+  localStorage.removeItem("dealer_name");
+  setDealerUI();
+  resetUI();
+}
+
+/* hold logout */
+let dealerHoldTimer = null;
+let dealerHoldStart = 0;
+
+function startDealerHold(){
+  if (dealerHoldTimer) return;
+  dealerHoldStart = performance.now();
+  dealerBtn.classList.add("holding");
+  dealerProgress.style.width = "0%";
+
+  dealerHoldTimer = setInterval(() => {
+    const t = performance.now() - dealerHoldStart;
+    const pct = Math.min(100, (t / HOLD_TIME) * 100);
+    dealerProgress.style.width = pct.toFixed(0) + "%";
+    if (t >= HOLD_TIME) stopDealerHold(true);
+  }, 16);
+}
+
+function stopDealerHold(trigger=false){
+  if (dealerHoldTimer){
+    clearInterval(dealerHoldTimer);
+    dealerHoldTimer = null;
+  }
+  dealerBtn.classList.remove("holding");
+  dealerProgress.style.width = "0%";
+
+  if (trigger && isDealerLoggedIn()){
+    if (confirm(`Logout dealer ${DEALER_NAME}?`)) dealerLogout();
+  }
+}
+
+dealerBtn.addEventListener("pointerdown", (e) => {
+  if (e.button !== undefined && e.button !== 0) return;
+  startDealerHold();
+});
+dealerBtn.addEventListener("pointerup", () => stopDealerHold(false));
+dealerBtn.addEventListener("pointerleave", () => stopDealerHold(false));
+dealerBtn.addEventListener("pointercancel", () => stopDealerHold(false));
+dealerBtn.addEventListener("click", () => {
+  if (!isDealerLoggedIn()) openDealerModal();
+});
+
+/* restore dealer */
+(function restoreDealer(){
+  const duid = localStorage.getItem("dealer_uid");
+  const dname = localStorage.getItem("dealer_name");
+  if (duid && dname){
+    DEALER_UID = duid;
+    DEALER_NAME = dname;
+  }
+  setDealerUI();
+})();
+
+/* ===== PANEL / SEATS ===== */
+function initPanel(){
+  createSeats();
+  renderSeats();
+  loadSeats();
+  initRealtime();
+  window.addEventListener('resize', renderSeats);
+}
+
+function createSeats(){
+  for (let i = 1; i <= SEAT_COUNT; i++){
+    if (seats[i]?.el) continue;
 
     seatState[i] = { player_uid: null };
 
@@ -563,17 +810,16 @@ function createSeats() {
     seat.appendChild(num);
     seat.appendChild(uidEl);
 
-    // ===== HOLD (scan / eject) =====
     seat.addEventListener('pointerdown', () => {
+      if (!requireDealer()) return;
+
       didHold = false;
       clearTimeout(holdTimer);
 
       holdTimer = setTimeout(() => {
         didHold = true;
         if (seatState[i].player_uid) {
-          if (confirm(`Reject PLAYER_UID ${seatState[i].player_uid.slice(0,6)} ?`)) {
-            ejectUID(i);
-          }
+          if (confirm(`Reject PLAYER_UID ${seatState[i].player_uid.slice(0,6)} ?`)) ejectUID(i);
         } else {
           scanQRAndAssign(i);
         }
@@ -584,30 +830,16 @@ function createSeats() {
     seat.addEventListener('pointerleave', () => clearTimeout(holdTimer));
     seat.addEventListener('pointercancel', () => clearTimeout(holdTimer));
 
-    // ===== TAP (select / unselect seat) =====
     seat.addEventListener('click', () => {
       if (didHold) return;
+      if (!requireDealer()) return;
       if (!seatState[i].player_uid) return;
 
-      // 🔁 click lại để bỏ chọn
-      if (selectedSeatNumber === i) {
-        selectedSeatNumber = null;
-        selectedPlayerId = null;
-        selectedSeatLabel = "";
-
-        rakeTotal = 0;
-        rakeHistory = [];
-
-        const seatEl = document.getElementById("selectedSeat");
-        if (seatEl) seatEl.innerText = "No seat selected";
-
-        renderSeats();
-        updateDisplay();
-        resetSlider();
+      if (selectedSeatNumber === i){
+        resetUI();
         return;
       }
 
-      // 👉 chọn ghế
       selectSeat(
         seatState[i].player_uid,
         `Seat ${i} • ${seatState[i].player_uid.slice(0,4)}`,
@@ -620,20 +852,38 @@ function createSeats() {
   }
 }
 
+function renderSeats(){
+  const rect = tableEl.getBoundingClientRect();
+  const cx = rect.width / 2;
+  const cy = rect.height / 2;
+  const rX = cx - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50;
+  const rY = cy - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50;
 
+  for (let i=1; i<=SEAT_COUNT; i++){
+    const s = seats[i];
+    if (!s?.el) continue;
 
-// chỉ gọi click của button cũ
- const thumb = document.getElementById('slideThumb')
-const track = thumb.parentElement
+    const angle = (Math.PI*2/SEAT_COUNT)*(i-TOP_SEAT) - Math.PI/2;
 
-let isDragging = false
-let startX = 0
-let currentX = 0
+    s.el.style.left = cx + Math.cos(angle)*rX + 'px';
+    s.el.style.top  = cy + Math.sin(angle)*rY + 'px';
+    s.el.style.transform = 'translate(-50%,-50%)';
 
-const maxX = () => track.offsetWidth - thumb.offsetWidth - 4
+    s.el.classList.remove('occupied','selected');
+    if (seatState[i].player_uid) s.el.classList.add('occupied');
+    if (selectedSeatNumber === i) s.el.classList.add('selected');
+
+    s.uidEl.textContent = seatState[i].player_uid ? seatState[i].player_uid.slice(0,4) : '';
+  }
+}
+
+/* ===== slider ===== */
+let isDragging = false, startX = 0, currentX = 0;
+const maxX = () => track.offsetWidth - thumb.offsetWidth - 4;
 
 thumb.addEventListener('pointerdown', e => {
-  if (!selectedPlayerId || isSubmitting) return; // ⬅️ CHẶN TRƯỚC
+  if (!requireDealer()) return;
+  if (!selectedPlayerId || isSubmitting) return;
 
   isDragging = true;
   startX = e.clientX - thumb.offsetLeft;
@@ -641,394 +891,213 @@ thumb.addEventListener('pointerdown', e => {
 });
 
 document.addEventListener('pointermove', e => {
-  if (!isDragging) return
-  currentX = e.clientX - startX
-  currentX = Math.max(4, Math.min(currentX, maxX()))
-  thumb.style.left = currentX + 'px'
-})
+  if (!isDragging) return;
+  currentX = e.clientX - startX;
+  currentX = Math.max(4, Math.min(currentX, maxX()));
+  thumb.style.left = currentX + 'px';
+});
 
 document.addEventListener('pointerup', () => {
-  if (!isDragging) return
-  isDragging = false
+  if (!isDragging) return;
+  isDragging = false;
 
   if (currentX > maxX() * 0.85) {
-    thumb.style.left = maxX() + 'px'
+    thumb.style.left = maxX() + 'px';
+    document.getElementById('nextHandBtn').click();
+  } else {
+    thumb.style.left = '4px';
+  }
+});
 
 document.addEventListener('pointercancel', () => {
-  isDragging = false
-  thumb.style.left = '4px'
-})
-
-    // 🔥 GỌI NÚT CŨ
-    document.getElementById('nextHandBtn').click()
-  } else {
-    thumb.style.left = '4px'
-  }
-}) 
+  isDragging = false;
+  thumb.style.left = '4px';
+});
 
 function resetSlider(){
-  currentX = 0
-  thumb.style.left = '4px'
+  currentX = 0;
+  thumb.style.left = '4px';
 }
 
- 
-
-
-
-/* ===== RENDER ===== */
-function renderSeats() {
-  const rect = tableEl.getBoundingClientRect()
-  const cx = rect.width / 2
-  const cy = rect.height / 2
-  const rX = cx - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50
-  const rY = cy - SEAT_SIZE/2 - TABLE_BORDER - SAFE_PADDING + 50
-
-  for (let i = 1; i <= SEAT_COUNT; i++) {
-    const { el, uidEl } = seats[i]
-    const angle = (Math.PI*2/SEAT_COUNT)*(i-TOP_SEAT) - Math.PI/2
-
-    el.style.left = cx + Math.cos(angle)*rX + 'px'
-    el.style.top  = cy + Math.sin(angle)*rY + 'px'
-    el.style.transform = 'translate(-50%,-50%)'
-
-    el.classList.remove('occupied', 'selected');
-
-if (seatState[i].player_uid) {
-  el.classList.add('occupied');
+/* ===== DB / Realtime / QR ===== */
+async function loadSeats(){
+  const { data } = await sb.from('seats').select('*').eq('table_uid', TABLE_UID);
+  (data||[]).forEach(r => { seatState[String(r.seat_number)].player_uid = r.player_uid; });
+  renderSeats();
 }
 
-if (selectedSeatNumber === i) {
-  el.classList.add('selected');
+function initRealtime(){
+  sb.channel('seats-' + TABLE_UID)
+    .on('postgres_changes', { event:'*', schema:'public', table:'seats', filter:`table_uid=eq.${TABLE_UID}` }, p => {
+      seatState[p.new.seat_number].player_uid = p.new.player_uid;
+      renderSeats();
+    })
+    .subscribe();
 }
 
-
-
-
-
-    uidEl.textContent = seatState[i].player_uid ? seatState[i].player_uid.slice(0,4) : ''
-  }
+async function isValidPlayerUID(player_uid){
+  const { data, error } = await sb.from('players').select('player_uid').eq('player_uid', player_uid).single();
+  return !(error || !data);
 }
 
-/* ===== DB / REALTIME / QR ===== */
-/* (GIỮ NGUYÊN PHẦN CÒN LẠI CỦA BẠN – KHÔNG ĐỘNG GÌ) */
-
-/* ===== DB ===== */
-
-async function isValidPlayerUID(player_uid) {
-  const { data, error } = await sb
-    .from('players')
-    .select('player_uid')
-    .eq('player_uid', player_uid)
-    .single()
-
-  if (error || !data) return false
-  return true
-}
-
-
-async function assignUID(seat, player_uid) {
-  seatState[seat].player_uid = player_uid
-  renderSeats()
+async function assignUID(seat, player_uid){
+  seatState[seat].player_uid = player_uid;
+  renderSeats();
 
   const { data, error } = await sb
     .from('seats')
     .update({ player_uid })
     .eq('table_uid', TABLE_UID)
     .eq('seat_number', seat)
-    .select()
+    .select();
 
-  if (error || !data?.length) {
-    seatState[seat].player_uid = null
-    renderSeats()
-    alert('❌ Gán PLAYER_UID thất bại')
+  if (error || !data?.length){
+    seatState[seat].player_uid = null;
+    renderSeats();
+    alert('❌ Gán PLAYER_UID thất bại');
   }
 }
 
-async function ejectUID(seat) {
-  const old = seatState[seat].player_uid
-  seatState[seat].player_uid = null
-  renderSeats()
+async function ejectUID(seat){
+  const old = seatState[seat].player_uid;
+  seatState[seat].player_uid = null;
+  renderSeats();
 
   const { data, error } = await sb
     .from('seats')
     .update({ player_uid: null })
     .eq('table_uid', TABLE_UID)
     .eq('seat_number', String(seat))
-    .select()
+    .select();
 
-  if (error || !data?.length) {
-    seatState[seat].player_uid = old
-    renderSeats()
-    alert('❌ Reject thất bại')
+  if (error || !data?.length){
+    seatState[seat].player_uid = old;
+    renderSeats();
+    alert('❌ Reject thất bại');
   }
 }
 
-async function loadSeats() {
-  const { data } = await sb
-    .from('seats')
-    .select('*')
-    .eq('table_uid', TABLE_UID)
+async function scanQRAndAssign(seatIndex){
+  const modal = document.getElementById('qrModal');
+  const closeBtn = document.getElementById('closeQR');
 
-  data?.forEach(r => {
-    seatState[String(r.seat_number)].player_uid = r.player_uid
-  })
-  renderSeats()
-}
-
-/* ===== REALTIME ===== */
-function initRealtime() {
-  sb.channel('seats-' + TABLE_UID)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'seats',
-        filter: `table_uid=eq.${TABLE_UID}`
-      },
-      p => {
-        seatState[p.new.seat_number].player_uid = p.new.player_uid
-        renderSeats()
-      }
-    )
-    .subscribe()
-}
-
-/* ===== QR ===== */
-let qrScanner = null
-
-async function scanQRAndAssign(seatIndex) {
-  const modal = document.getElementById('qrModal')
-  const closeBtn = document.getElementById('closeQR')
-
-  modal.style.display = 'flex'
-  await safeStopQR()
+  modal.style.display = 'flex';
+  await safeStopQR();
 
   setTimeout(async () => {
-    qrScanner = new Html5Qrcode('qr-reader')
+    qrScanner = new Html5Qrcode('qr-reader');
     qrScanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: 220, aspectRatio: 1 },
+      { facingMode:'environment' },
+      { fps:10, qrbox:220, aspectRatio:1 },
       async text => {
-        await safeStopQR()
-        modal.style.display = 'none'
+        await safeStopQR();
+        modal.style.display = 'none';
 
-      const player_uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase()
-if (!player_uid) return alert('QR không hợp lệ')
+        const player_uid = text?.trim().replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+        if (!player_uid) return alert('QR không hợp lệ');
 
-// 🔍 check UID trong bảng players
-const exists = await isValidPlayerUID(player_uid)
-if (!exists) {
-  alert('❌ UID không tồn tại trong hệ thống')
-  return
-}
+        const exists = await isValidPlayerUID(player_uid);
+        if (!exists) return alert('❌ UID không tồn tại trong hệ thống');
 
-// ✅ PLAYER_UID hợp lệ → cho gán ghế
-assignUID(seatIndex, player_uid)
-
-
+        assignUID(seatIndex, player_uid);
       }
-    )
-  }, 150)
+    );
+  }, 150);
 
   closeBtn.onclick = async () => {
-    await safeStopQR()
-    modal.style.display = 'none'
+    await safeStopQR();
+    modal.style.display = 'none';
+  };
+}
+
+async function safeStopQR(){
+  if (qrScanner){
+    try{
+      if (qrScanner.isScanning) await qrScanner.stop();
+      await qrScanner.clear();
+    }catch(e){}
+    qrScanner = null;
   }
 }
 
-async function safeStopQR() {
-  if (qrScanner) {
-    try {
-      if (qrScanner.isScanning) await qrScanner.stop()
-      await qrScanner.clear()
-    } catch(e){}
-    qrScanner = null
-  }
-}
-
-
-
-// gọi fuction này từ UI seat
+/* ===== Rake flow ===== */
 function selectSeat(playerId, seatLabel, seatNumber){
-
-  // auto reset khi đổi seat
   rakeTotal = 0;
   rakeHistory = [];
-
   selectedPlayerId = playerId;
   selectedSeatLabel = seatLabel;
   selectedSeatNumber = seatNumber;
-
   document.getElementById("selectedSeat").innerText = seatLabel;
-  
-  renderSeats(); 
+  renderSeats();
   updateDisplay();
 }
-
-// Add rake (stack-based undo)
 
 function addRake(amount){
-
-  if(!selectedPlayerId){
-    alert("Select a seat first");
-    return;
-  }
-
+  if (!requireDealer()) return;
+  if (!selectedPlayerId) return alert("Select a seat first");
   rakeTotal += amount;
   rakeHistory.push(amount);
-
   updateDisplay();
-
-  if(navigator.vibrate){
-    navigator.vibrate(30);
-  }
+  if (navigator.vibrate) navigator.vibrate(30);
 }
-
-
-// Undo
 
 function undoRake(){
-
-  if(rakeHistory.length === 0) return;
-
-  const last = rakeHistory.pop();
-  rakeTotal -= last;
-
+  if (!requireDealer()) return;
+  if (!rakeHistory.length) return;
+  rakeTotal -= rakeHistory.pop();
   updateDisplay();
 }
 
-//Update UI
-
-function updateDisplay(){
-
-  const rakeEl = document.getElementById("rakeAmount");
-  if (rakeEl) {
-    rakeEl.innerText = "$" + rakeTotal;
-  }
-
-  const nextBtn = document.getElementById("nextHandBtn");
-  if (nextBtn) {
-    nextBtn.innerText = `Next Hand • $${rakeTotal}`;
-  }
-
-  const slideText = document.getElementById("slideText");
-  if (slideText) {
-    slideText.innerText = `Slide to Next Hand • $${rakeTotal}`;
-  }
-
-  // ✅ FIX: update slider state đúng lúc
-  const slideTrack = document.querySelector('.slide-track');
-  if (slideTrack) {
-    slideTrack.classList.toggle(
-      'disabled',
-      !selectedPlayerId || isSubmitting
-    );
-  }
-}
-
-
-
-//Next Hand
-
 async function nextHand(){
-
-    if(isSubmitting) return;
-
-  if(!selectedPlayerId){
-    alert("Select a seat");
-    return;
-  }
-
-  if(isSubmitting) return;
-
-  if(rakeTotal === 0){
-    openModal();
-    return;
-  }
-
+  if (!requireDealer()) return;
+  if (isSubmitting) return;
+  if (!selectedPlayerId) return alert("Select a seat");
+  if (rakeTotal === 0){ openModal(); return; }
   await createHand();
 }
 
+function openModal(){ document.getElementById("noRakeModal").style.display = "flex"; }
+function closeModal(){ document.getElementById("noRakeModal").style.display = "none"; }
+async function confirmNoRake(){ if (!requireDealer()) return; closeModal(); await createHand(); }
 
-
-// Modal control
-function openModal(){
-  document.getElementById("noRakeModal").style.display = "flex";
-}
-
-function closeModal(){
-  document.getElementById("noRakeModal").style.display = "none";
-}
-
-async function confirmNoRake(){
-  closeModal();
-  await createHand();
-}
-
-//Create hand nhưng chưa có table_uid/dealer_uid (mốt thêm sau)
-async function createHand() {
-  try {
+async function createHand(){
+  if (!requireDealer()) return;
+  try{
     isSubmitting = true;
+    updateDisplay();
 
-    // 1️⃣ insert rake
-    const { data: hand, error: handError } = await sb
-      .from("rake_logs")
-      .insert({
-        table_uid: TABLE_UID,
-        player_uid: selectedPlayerId, // "A001"
-        rake: rakeTotal
-      })
-      .select()
-      .single();
+    const { error } = await sb.from("rake_logs").insert({
+      table_uid: TABLE_UID,
+      dealer_uid: DEALER_UID,
+      player_uid: selectedPlayerId,
+      rake: rakeTotal
+    });
 
-    if (handError) throw handError;
-
-     
-
+    if (error) throw error;
     resetUI();
-
-  } catch (err) {
+  }catch(err){
     console.error(err);
     alert(err.message || "Insert failed");
-  } finally {
+  }finally{
     isSubmitting = false;
+    updateDisplay();
   }
 }
 
-
-//Reset
 function resetUI(){
-
-  // reset rake
   rakeTotal = 0;
   rakeHistory = [];
-
-  // reset seat đang chọn
   selectedPlayerId = null;
   selectedSeatLabel = "";
   selectedSeatNumber = null;
-
-  // reset control panel
   const seatEl = document.getElementById("selectedSeat");
-  if (seatEl) {
-    seatEl.innerText = "No seat selected";
-  }
-
-  // reset UI khác
+  if (seatEl) seatEl.innerText = "No seat selected";
   updateDisplay();
   resetSlider();
-  renderSeats();   // 🔥 rất quan trọng: bỏ màu ghế đang chọn
+  renderSeats();
 }
-// chống double insert rake
 
-
-
-
-
-
-
-console.log('table-counter V1.02')
+console.log("table-counter fixed-order V1.05");
 </script>
 
 </body>
