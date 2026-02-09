@@ -6,6 +6,19 @@
 <title>Table Counter</title>
 
 <style>
+/* ✅ Anti copy/select (trừ input/select/textarea) */
+*{
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea, select{
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* ===== GLOBAL LOCK ===== */
 html, body {
   margin: 0;
@@ -145,8 +158,6 @@ input, button { font-size: 16px; }
   color:#fff;
   font-weight:800;
   letter-spacing:.2px;
-  user-select:none;
-  -webkit-tap-highlight-color: transparent;
   transform: translateY(0);
   transition: transform .12s ease, filter .12s ease, opacity .12s ease;
   box-shadow:
@@ -202,9 +213,6 @@ input, button { font-size: 16px; }
   justify-content: center;
   font-weight: 600;
   cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
   touch-action: none;
 }
 .seat.occupied {
@@ -234,7 +242,6 @@ input, button { font-size: 16px; }
   background: #222;
   border-radius: 30px;
   overflow: hidden;
-  user-select: none;
 }
 
 .slide-text {
@@ -277,7 +284,6 @@ input, button { font-size: 16px; }
   letter-spacing:1px;
   color:rgba(255,255,255,0.35);
   pointer-events:none;
-  user-select:none;
   z-index: 10;
 }
 
@@ -363,7 +369,6 @@ input, button { font-size: 16px; }
   color:#fca5a5;
   font-weight:900;
 }
-
 </style>
 </head>
 
@@ -414,7 +419,6 @@ input, button { font-size: 16px; }
           <div id="tableNameLabel"></div>
         </div>
 
-        <!-- ✅ Dealer button under table -->
         <button id="dealerBtn" class="dealer-btn red" type="button">
           Dealer: NOT LOGGED IN
           <span class="sub">Tap to login • Hold 0.7s to logout</span>
@@ -535,10 +539,22 @@ input, button { font-size: 16px; }
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <script>
+/* ✅ extra anti copy (mobile) */
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+
 /* ===== LOCK ZOOM ===== */
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
 document.addEventListener('gestureend', e => e.preventDefault());
+
+/* ===== CONFIG (✅ giữ HOLD_TIME 1 lần duy nhất) ===== */
+const HOLD_TIME = 700;
+const SEAT_COUNT = 9;
+const TOP_SEAT = 5;
+const SEAT_SIZE = 60;
+const TABLE_BORDER = 4;
+const SAFE_PADDING = 8;
 
 /* ===== SUPABASE ===== */
 const SUPABASE_URL = 'https://ymtmipkmknnsqleahlmi.supabase.co'
@@ -622,7 +638,6 @@ async function submitLogin() {
     return alert('Bàn đang bị khóa')
   }
 
-  // ⚠️ phần table pin của bạn đang so plain text (giữ nguyên như bạn đang làm)
   if (data.pin_hash !== pin) {
     resetPin()
     return alert('Sai PIN')
@@ -669,30 +684,36 @@ function setDealerUI(){
   if (isDealerLoggedIn()){
     dealerBtn.classList.remove('red')
     dealerBtn.classList.add('green')
-    dealerBtn.firstChild.textContent = `Dealer: ${DEALER_NAME} `
+    // ✅ dùng childNodes[0] để chắc chắn đúng text node
+    dealerBtn.childNodes[0].textContent = `Dealer: ${DEALER_NAME}\n          `
   } else {
     dealerBtn.classList.remove('green')
     dealerBtn.classList.add('red')
-    dealerBtn.firstChild.textContent = `Dealer: NOT LOGGED IN `
+    dealerBtn.childNodes[0].textContent = `Dealer: NOT LOGGED IN\n          `
   }
-  updateDisplay() // để slide disabled đúng lúc
+  updateDisplay()
 }
 
-function requireDealer(actionLabel="This action"){
+function requireDealer(){
   if (isDealerLoggedIn()) return true;
   alert(`Dealer login required`);
   openDealerModal();
   return false;
 }
 
-async function loadDealersForModal(){
+function resetDealerModalUI(){
+  dealerSelect.value = "";
   dealerSelect.innerHTML = `<option value="">Loading…</option>`;
   dealerPinBox.style.display = "none";
   dealerPinInput.value = "";
   dealerOk.style.display = "none";
   dealerErr.style.display = "none";
+}
 
-const { data, error } = await sb.rpc('list_dealers');
+async function loadDealersForModal(){
+  resetDealerModalUI();
+
+  const { data, error } = await sb.rpc('list_dealers');
 
   if (error) {
     dealerSelect.innerHTML = `<option value="">Load failed</option>`;
@@ -727,6 +748,7 @@ function openDealerModal(){
 
 function closeDealerModal(){
   dealerModal.style.display = "none";
+  resetDealerModalUI();
 }
 
 dealerModalClose.addEventListener('click', closeDealerModal);
@@ -757,7 +779,6 @@ dealerPinInput.addEventListener('input', async () => {
   if (!dealerSelect.value) return;
   if (dealerPinInput.value.length !== 4) return;
 
-  // ✅ RPC verify (PIN không lộ)
   const { data, error } = await sb.rpc('verify_dealer_pin', {
     p_dealer_uid: dealerSelect.value,
     p_pin: dealerPinInput.value
@@ -780,10 +801,10 @@ dealerPinInput.addEventListener('input', async () => {
     localStorage.setItem("dealer_uid", DEALER_UID);
     localStorage.setItem("dealer_name", DEALER_NAME);
 
-    dealerOk.style.display = "block";
     setDealerUI();
 
-    setTimeout(closeDealerModal, 220);
+    // ✅ đóng modal ngay lập tức
+    closeDealerModal();
   } else {
     dealerErr.textContent = "❌ Wrong PIN";
     dealerErr.style.display = "block";
@@ -799,12 +820,11 @@ function dealerLogout(){
   localStorage.removeItem("dealer_name");
   setDealerUI();
 
-  // reset thao tác hiện tại để tránh “dính” seat/rake khi logout
+  // reset thao tác hiện tại để tránh “dính”
   resetUI();
 }
 
-/* ===== Dealer button behavior: tap login, hold 0.7s logout ===== */
-const HOLD_TIME = 700; // bạn đã có HOLD_TIME, dùng luôn
+/* ===== Dealer button: tap login, hold logout ===== */
 let dealerHoldTimer = null;
 let dealerHoldStart = 0;
 
@@ -820,9 +840,7 @@ function startDealerHold(){
     const pct = Math.min(100, (t / HOLD_TIME) * 100);
     dealerProgress.style.width = pct.toFixed(0) + "%";
 
-    if (t >= HOLD_TIME) {
-      stopDealerHold(true);
-    }
+    if (t >= HOLD_TIME) stopDealerHold(true);
   }, 16);
 }
 
@@ -834,11 +852,8 @@ function stopDealerHold(trigger=false){
   dealerBtn.classList.remove("holding");
   dealerProgress.style.width = "0%";
 
-  if (trigger){
-    // ✅ hold 0.7s = logout (nếu đang login)
-    if (isDealerLoggedIn()){
-      if (confirm(`Logout dealer ${DEALER_NAME}?`)) dealerLogout();
-    }
+  if (trigger && isDealerLoggedIn()){
+    if (confirm(`Logout dealer ${DEALER_NAME}?`)) dealerLogout();
   }
 }
 
@@ -850,7 +865,6 @@ dealerBtn.addEventListener("pointerup", () => stopDealerHold(false));
 dealerBtn.addEventListener("pointerleave", () => stopDealerHold(false));
 dealerBtn.addEventListener("pointercancel", () => stopDealerHold(false));
 
-// tap = login (nếu chưa login)
 dealerBtn.addEventListener("click", () => {
   if (!isDealerLoggedIn()) openDealerModal();
 });
@@ -866,14 +880,7 @@ dealerBtn.addEventListener("click", () => {
   setDealerUI();
 })();
 
-/* ===== CONFIG ===== */
-const SEAT_COUNT = 9
-const TOP_SEAT = 5
-const SEAT_SIZE = 60
-const TABLE_BORDER = 4
-const SAFE_PADDING = 8
-
-// Biến global
+/* ===== App state ===== */
 let rakeTotal = 0;
 let rakeHistory = [];
 let selectedPlayerId = null;
@@ -898,7 +905,9 @@ function initPanel() {
 
 /* ===== SEATS ===== */
 function createSeats() {
+  // ✅ tránh double-render nếu lỡ gọi initPanel 2 lần
   for (let i = 1; i <= SEAT_COUNT; i++) {
+    if (seats[i]?.el) continue;
 
     seatState[i] = { player_uid: null };
 
@@ -913,7 +922,6 @@ function createSeats() {
     seat.appendChild(num);
     seat.appendChild(uidEl);
 
-    // ===== HOLD (scan / eject) =====
     seat.addEventListener('pointerdown', () => {
       if (!requireDealer()) return;
 
@@ -936,7 +944,6 @@ function createSeats() {
     seat.addEventListener('pointerleave', () => clearTimeout(holdTimer));
     seat.addEventListener('pointercancel', () => clearTimeout(holdTimer));
 
-    // ===== TAP (select / unselect seat) =====
     seat.addEventListener('click', () => {
       if (didHold) return;
       if (!requireDealer()) return;
@@ -1036,7 +1043,6 @@ function renderSeats() {
     el.style.transform = 'translate(-50%,-50%)'
 
     el.classList.remove('occupied', 'selected');
-
     if (seatState[i].player_uid) el.classList.add('occupied');
     if (selectedSeatNumber === i) el.classList.add('selected');
 
@@ -1045,7 +1051,6 @@ function renderSeats() {
 }
 
 /* ===== DB ===== */
-
 async function isValidPlayerUID(player_uid) {
   const { data, error } = await sb
     .from('players')
@@ -1273,7 +1278,6 @@ async function confirmNoRake(){
   await createHand();
 }
 
-/* ✅ Create hand: thêm dealer_uid (bắt buộc login mới chạy) */
 async function createHand() {
   if (!requireDealer()) return;
 
@@ -1285,7 +1289,7 @@ async function createHand() {
       .from("rake_logs")
       .insert({
         table_uid: TABLE_UID,
-        dealer_uid: DEALER_UID,        // ✅ add
+        dealer_uid: DEALER_UID,
         player_uid: selectedPlayerId,
         rake: rakeTotal
       })
@@ -1321,9 +1325,7 @@ function resetUI(){
   renderSeats();
 }
 
-/* ===== init ===== */
-setDealerUI();
-console.log('table-counter V1.02 + dealer-auth')
+console.log('table-counter V1.02 + dealer-auth (fixed)')
 </script>
 
 </body>
