@@ -454,13 +454,13 @@ async function saveNote(player_uid, note){
 
 function formatLastActivity(player){
 
-  if(!player.last_activity) return "";
+  if(!player.last_activity) return "-";
 
   const diffMin =
     (Date.now() - new Date(player.last_activity)) / 60000;
 
   // > 2h → biến mất
-  if(diffMin >= 120) return "";
+  if(diffMin >= 120) return "-";
 
   const amount = `+$${player.last_rake}`;
 
@@ -525,7 +525,7 @@ function updateSeatTimers(){
 
       cell.innerHTML = player.is_online
         ? formatDuration(player.seated_at)
-        : `<span style="color:#64748b">Offline</span>`;
+        : `<span style="color:#64748b">💤</span>`;
     });
 }
 
@@ -568,7 +568,7 @@ function renderTable(){
            ${formatDuration(p.seated_at)}
          </span>`
       : `<span style="color:#64748b">
-           Offline
+           💤
          </span>`
   }
 </td>
