@@ -98,7 +98,7 @@ input, button { font-size: 16px; }
 /* ===== layout ===== */
 .app{ display:flex; flex-direction:column; height:100dvh; }
 .control-panel{
-  flex:4;
+  flex:3;
   background:#111;
   color:white;
   padding:16px;
@@ -107,7 +107,7 @@ input, button { font-size: 16px; }
   box-shadow:0 -8px 30px rgba(0,0,0,.45);
 }
 .table-area{
-  flex:6;
+  flex:7;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -117,7 +117,7 @@ input, button { font-size: 16px; }
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:20px;
+  gap:22px;
   width:100%;
 }
 
@@ -135,21 +135,21 @@ input, button { font-size: 16px; }
   position:relative;
   border:none;
   cursor:pointer;
-    margin-top: 20px; 
-  padding:12px 16px;
+    margin-top: 12px; 
+  padding:8px 16px;
   width:min(360px, 92%);
   border-radius:18px;
   color:#fff;
   font-weight:800;
   letter-spacing:.2px;
-  transform: translateY(10px);
+  transform: translateY(26px);
   transition: transform .12s ease, filter .12s ease, opacity .12s ease;
   box-shadow:
     0 14px 30px rgba(0,0,0,0.35),
     inset 0 1px 0 rgba(255,255,255,0.18),
     inset 0 -10px 20px rgba(0,0,0,0.25);
 }
-.dealer-btn:active{ transform: translateY(12px); filter: brightness(0.98); }
+.dealer-btn:active{ transform: translateY(28px); filter: brightness(0.98); }
 .dealer-btn.red{ background: linear-gradient(180deg, rgba(239,68,68,0.95), rgba(185,28,28,0.92)); }
 .dealer-btn.green{ background: linear-gradient(180deg, rgba(34,197,94,0.92), rgba(21,128,61,0.90)); }
 .dealer-btn .sub{ display:block; font-size:12px; font-weight:700; opacity:.85; margin-top:4px; }
@@ -586,6 +586,30 @@ async function loadTables() {
   }
 }
 
+(function restoreTableLogin(){
+  const saved = localStorage.getItem("table_uid");
+  if (!saved) return;
+
+  TABLE_UID = saved;
+
+  // vào thẳng panel
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('panelView').style.display = 'block';
+
+  // set label (tạm dùng UID, sau đó nếu loadTables có rồi thì sẽ update theo tên)
+  const label = document.getElementById('tableNameLabel');
+  if (label) label.innerText = TABLE_UID;
+
+  // init
+  initPanel();
+
+  // nếu sau đó tables load xong thì cập nhật label theo table_name
+  setTimeout(() => {
+    const opt = [...document.getElementById('tableSelect').options]
+      .find(o => o.value === TABLE_UID);
+    if (opt && label) label.innerText = opt.textContent || TABLE_UID;
+  }, 300);
+})();
 
 
 
@@ -673,14 +697,23 @@ dealerModal.addEventListener('click', (e) => {
 
 dealerSelect.addEventListener('change', () => {
   dealerErr.style.display = "none";
-  if (!dealerSelect.value){
+
+  if (!dealerSelect.value) {
     dealerPinBox.style.display = "none";
     dealerPinInput.value = "";
     return;
   }
+
   dealerPinBox.style.display = "block";
   dealerPinInput.value = "";
-  setTimeout(() => dealerPinInput.focus(), 0);
+
+  // ✅ focus chắc chắn (ăn trên iOS/Android)
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      dealerPinInput.focus({ preventScroll: true });
+      dealerPinInput.click(); // mở keypad tốt hơn trên mobile
+    }, 50);
+  });
 });
 
 dealerPinInput.addEventListener('input', async () => {

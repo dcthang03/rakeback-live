@@ -24,9 +24,9 @@ body{background:#020617;color:white;min-height:100vh;}
 .card-title{color:#94a3b8;font-size:13px;}
 .card-value{font-size:24px;font-weight:600;margin-top:6px;}
 .section-title{margin-bottom:12px;}
-.table{width:100%;border-collapse:collapse;}
-.table th{text-align:left;padding:12px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.06);}
-.table td{padding:14px 12px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.table{width:100%;border-collapse:collapse;table-layout: fixed;}
+.table th{text-align:left;padding:12px;color:#94a3b8;border-bottom:1px solid rgba(255,255,255,0.06);overflow:hidden;}
+.table td{padding:14px 12px;border-bottom:1px solid rgba(255,255,255,0.04);overflow:hidden;}
 
 .week-note{
   margin-top:-16px;
@@ -35,6 +35,49 @@ body{background:#020617;color:white;min-height:100vh;}
   color:#64748b;
   text-align:right;
 }
+
+.note-view{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  cursor:pointer;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.02);
+}
+.note-view:hover{
+  border-color: rgba(255,255,255,0.14);
+}
+.note-text{
+  max-width:220px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.note-edit{
+  opacity:.8;
+}
+.note-view:hover .note-edit{
+  opacity:1;
+}
+
+.truncate{
+  display:inline-block;
+  max-width:100%;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  vertical-align:bottom;
+}
+
+.table td { overflow:hidden; }
+.table-slot.online{ color:#4ade80; font-weight:600; }
+.table-slot.offline{ color:#64748b; }
+
+
+
 
 </style>
 </head>
@@ -106,13 +149,14 @@ const agent_uid = localStorage.getItem("agent_uid");
 if(!agent_uid) window.location.href = "./agent-login.html";
 
 // =====================
-// STATE
+// STATE GLOBAL
 // =====================
 let allPlayers = [];
 let currentView = "this_week";
 
 let serverClockSkewMs = 0;      // serverNow - clientNow
 let prodRolloverTimer = null;   // production
+let playersStateShow = "table"; // "table" | "duration"
 
 
 
@@ -157,7 +201,7 @@ function getServerNow(){
 async function getPlayers(){
   const { data, error } = await sb
     .from("players")
-    .select("player_uid,total_rake")
+    .select("player_uid,total_rake,note,percent_rake")
     .eq("agent_uid", agent_uid);
 
   if(error){
@@ -166,6 +210,71 @@ async function getPlayers(){
   }
   return data || [];
 }
+
+async function getAgent(){
+  const { data, error } = await sb
+    .from("agents")
+    .select("agent_uid,name")
+    .eq("agent_uid", agent_uid)
+    .maybeSingle();
+
+  if(error){
+    console.error("getAgent error:", error);
+    return null;
+  }
+  return data;
+}
+//======================
+// SAVE PERCENT RAKE
+//======================
+async function savePercentRake(player_uid, percent_rake){
+  const n = Number(percent_rake);
+  const clamped = Math.max(10, Math.min(50, Number.isFinite(n) ? n : 10));
+
+  const { error } = await sb
+    .from("players")
+    .update({ percent_rake: clamped })
+    .eq("player_uid", player_uid)
+    .eq("agent_uid", agent_uid);
+
+  if(error) console.error("savePercentRake error:", error);
+  return clamped;
+}
+
+
+async function onPercentBlur(player_uid, value, el){
+  const raw = String(value ?? "").trim();
+
+  // nếu bỏ trống -> restore số cũ
+  if(raw === ""){
+    if(el && el.dataset.old != null) el.value = el.dataset.old;
+  }
+
+  const n = Number(el ? el.value : raw);
+  const pct = Math.max(10, Math.min(50, Number.isFinite(n) ? n : 10));
+
+  const { error } = await sb
+    .from("players")
+    .update({ percent_rake: pct })
+    .eq("player_uid", player_uid)
+    .eq("agent_uid", agent_uid);
+
+  if(error){
+    console.error("onPercentBlur error:", error);
+  }else{
+    const p = allPlayers.find(x => String(x.player_uid) === String(player_uid));
+    if(p) p.percent_rake = pct;
+  }
+
+  // reset để lần tap sau xoá tiếp được
+  if(el) el.dataset.cleared = "0";
+
+  renderTable();
+}
+
+
+
+
 
 // =====================
 // WEEK RANGE UTC (PROD)
@@ -290,20 +399,20 @@ if(r){
 // ATTACH PLAYER STATE + NOTE
 // =====================
 async function attachPlayerState(players){
-  const { data: seats } = await sb
-    .from("seats")
-    .select("player_uid,table_uid,seat_number,seated_at")
-    .not("player_uid","is",null);
+const { data: seats, error: seatsErr } = await sb
+  .from("seats")
+  .select("player_uid,table_uid,seat_number,seated_at")
+  .not("player_uid","is",null);
 
-  const { data: notes } = await sb
-    .from("agent_player_notes")
-    .select("player_uid,note")
-    .eq("agent_uid", agent_uid);
+if(seatsErr){
+  console.error("SEATS ERROR:", seatsErr);
+}
+
+console.log("seats loaded:", seats?.length);
 
   const seatMap = {};
   const noteMap = {};
 
-  notes?.forEach(n => noteMap[String(n.player_uid)] = n.note);
 
   seats?.forEach(seat=>{
     if(seat.player_uid){
@@ -315,13 +424,14 @@ async function attachPlayerState(players){
     }
   });
 
-  players.forEach(p=>{
-    const seatData = seatMap[String(p.player_uid)];
-    p.is_online = Boolean(seatData);
-    p.table_position = seatData?.table || "-";
-    p.seated_at = seatData?.seated_at || null;
-    p.note = noteMap[String(p.player_uid)] || "";
-  });
+players.forEach(p=>{
+  const seatData = seatMap[String(p.player_uid)];
+  p.is_online = Boolean(seatData);
+  p.table_position = seatData?.table || "-";
+  p.seated_at = seatData?.seated_at || null;
+  // note đã có sẵn từ getPlayers(): p.note
+});
+
 
   return players;
 }
@@ -330,10 +440,88 @@ async function attachPlayerState(players){
 // SAVE NOTE (UPSERT)
 // =====================
 async function saveNote(player_uid, note){
-  await sb
-    .from("agent_player_notes")
-    .upsert({ agent_uid, player_uid, note }, { onConflict:"agent_uid,player_uid" });
+  const { error } = await sb
+    .from("players")
+    .update({ note })
+    .eq("player_uid", player_uid)
+    .eq("agent_uid", agent_uid);
+
+  if(error) console.error("save Note error:", error);
 }
+
+function escapeHtml(str){
+  return String(str)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+function escapeAttr(str){
+  // dùng cho value=""
+  return escapeHtml(str).replace(/"/g,"&quot;");
+}
+
+function startEditNote(player_uid){
+  const cell = document.querySelector(`.note-cell[data-uid="${player_uid}"]`);
+  if(!cell) return;
+
+  cell.querySelector(".note-view").style.display = "none";
+  cell.querySelector(".note-editbox").style.display = "block";
+
+  const input = document.getElementById(`noteInput-${player_uid}`);
+  if(input){
+    input.focus();
+    input.select();
+    // lưu note cũ để ESC rollback
+    input.dataset.old = input.value;
+  }
+}
+
+function stopEditNote(player_uid){
+  const cell = document.querySelector(`.note-cell[data-uid="${player_uid}"]`);
+  if(!cell) return;
+
+  cell.querySelector(".note-editbox").style.display = "none";
+  cell.querySelector(".note-view").style.display = "flex";
+}
+
+async function commitNote(player_uid){
+  const input = document.getElementById(`noteInput-${player_uid}`);
+  if(!input) return;
+
+  const newNote = input.value;
+
+  // update local state trước cho UI mượt
+  const player = allPlayers.find(p => String(p.player_uid) === String(player_uid));
+  if(player) player.note = newNote;
+
+  await saveNote(player_uid, newNote);
+
+  // render lại table để view mode hiện note mới
+  renderTable();
+}
+
+function handleNoteKey(e, player_uid){
+  if(e.key === "Enter"){
+    e.preventDefault();
+    commitNote(player_uid);
+  }
+  if(e.key === "Escape"){
+    e.preventDefault();
+    const input = document.getElementById(`noteInput-${player_uid}`);
+    if(input) input.value = input.dataset.old || "";
+    // rollback local state
+    const player = allPlayers.find(p => String(p.player_uid) === String(player_uid));
+    if(player) player.note = input.value;
+
+    renderTable();
+  }
+}
+
+
+
+
 
 // =====================
 // UI HELPERS
@@ -367,21 +555,74 @@ function formatDuration(seatedAt){
   return `<span style="color:${color}">${h}h ${m}m</span>`;
 }
 
-function updateSeatTimers(){
+function updatePlayersStateTableCell(){
   if(currentView !== "players_state") return;
 
   document.querySelectorAll("tbody tr").forEach(row=>{
     const uid = row.dataset.uid;
-    const player = allPlayers.find(p => String(p.player_uid) === uid);
+    const player = allPlayers.find(p => String(p.player_uid) === String(uid));
     if(!player) return;
 
-    const cell = row.children[1];
-    cell.innerHTML = player.is_online
-      ? formatDuration(player.seated_at)
-      : `<span style="color:#64748b">💤</span>`;
+    // tìm đúng cell Table theo class, không dùng children[index]
+    const slot = row.querySelector(".table-slot");
+    if(!slot) return;
+
+    if(!player.is_online){
+      slot.classList.remove("online");
+      slot.classList.add("offline");
+      slot.innerHTML = "-";
+      return;
+    }
+
+    if(playersStateShow === "duration"){
+      slot.classList.add("online");
+      slot.classList.remove("offline");
+      slot.innerHTML = formatDuration(player.seated_at); // có màu theo hàm formatDuration
+    }else{
+      slot.classList.add("online");
+      slot.classList.remove("offline");
+      slot.textContent = player.table_position || "-"; // ví dụ A1-1
+    }
   });
 }
-setInterval(updateSeatTimers, 1000);
+
+// update mỗi 1s để duration chạy mượt (khi đang ở mode duration)
+setInterval(()=> {
+  if(currentView === "players_state" && playersStateShow === "duration"){
+    updatePlayersStateTableCell();
+  }
+}, 1000);
+
+// đổi qua lại Table <-> Duration mỗi 5s
+setInterval(()=> {
+  if(currentView !== "players_state") return;
+  playersStateShow = (playersStateShow === "table") ? "duration" : "table";
+  updatePlayersStateTableCell();
+}, 5000);
+
+function onPctTap(el){
+  if(!el) return;
+
+  // chỉ xoá lần đầu khi vừa focus (tránh tap lại xoá tiếp khi đang gõ)
+  if(el.dataset.cleared === "1") return;
+
+  el.dataset.old = el.value;
+  el.value = "";
+  el.dataset.cleared = "1";
+
+  // iOS: đảm bảo focus + hiện keyboard
+  setTimeout(()=> {
+    try{
+      el.focus();
+      el.select();
+    }catch(e){}
+  }, 0);
+}
+
+
+
+
+
 
 // =====================
 // SEAT REALTIME (batched refresh)
@@ -440,15 +681,16 @@ function queueSeatRefresh(uid){
 // =====================
 // RENDER TABLE
 // =====================
-function renderTable(){
+
   // PLAYER STATE MODE
+
+function renderTable(){
   if(currentView === "players_state"){
     document.querySelector(".table thead").innerHTML = `
       <tr>
-        <th>Player ID</th>
-        <th>Status</th>
-        <th>Table</th>
-        <th>Note</th>
+        <th style="width:35%;">Player</th>
+        <th style="width:25%;">Table</th>
+        <th style="width:40%;">Note</th>
       </tr>
     `;
 
@@ -456,35 +698,56 @@ function renderTable(){
 
     playersBody.innerHTML = sortedPlayers.map(p=>`
       <tr data-uid="${p.player_uid}">
-        <td>${p.player_uid}</td>
-        <td style="font-weight:600;">
-          ${
-            p.is_online
-              ? `<span style="color:#4ade80">${formatDuration(p.seated_at)}</span>`
-              : `<span style="color:#64748b">💤</span>`
-          }
-        </td>
         <td>
-          ${p.table_position === "-" ? "-" : `<span style="color:#4ade80;font-weight:600">${p.table_position}</span>`}
+          <span style="font-weight:600">${p.player_uid}</span>
+          ${p.is_online ? ` <span style="color:#4ade80;">●</span>` : ` <span style="color:#64748b;">●</span>`}
         </td>
+
         <td>
-          <input
-            value="${(p.note||"").replace(/"/g,"&quot;")}"
-            onchange="saveNote('${p.player_uid}', this.value)"
-            style="
-              background:transparent;
-              border:1px solid rgba(255,255,255,.1);
-              color:white;
-              padding:6px;
-              border-radius:6px;
-              width:140px;
-            "
-          />
+          <span class="table-slot ${p.is_online ? 'online' : 'offline'}">
+            ${p.table_position === "-" ? "-" : p.table_position}
+          </span>
+        </td>
+
+        <td>
+          <div class="note-cell" data-uid="${p.player_uid}">
+            <div class="note-view" onclick="startEditNote('${p.player_uid}')">
+              <span class="note-text">
+                ${(p.note || "").trim()
+                  ? escapeHtml(p.note)
+                  : `<span style="color:#64748b">Add note…</span>`}
+              </span>
+              <span class="note-edit">✏️</span>
+            </div>
+
+            <div class="note-editbox" style="display:none;">
+              <input
+                id="noteInput-${p.player_uid}"
+                value="${escapeAttr(p.note || "")}"
+                onkeydown="handleNoteKey(event,'${p.player_uid}')"
+                onblur="commitNote('${p.player_uid}')"
+                style="
+                  background:transparent;
+                  border:1px solid rgba(255,255,255,.14);
+                  color:white;
+                  padding:6px 8px;
+                  border-radius:8px;
+                  width:180px;
+                  outline:none;
+                "
+              />
+            </div>
+          </div>
         </td>
       </tr>
     `).join("");
+
+    // ✅ sau khi render xong mới update table/duration
+    updatePlayersStateTableCell();
     return;
   }
+
+
 
   // RAKE MODES
   
@@ -493,13 +756,22 @@ const metricText =
   currentView === "this_week" ? "This Week" :
   "Last Week";
 
-  document.querySelector(".table thead").innerHTML = `
-    <tr>
-      <th>Player ID</th>
-      <th>${metricText}</th>
-      ${ currentView !== "last_week" ? "<th>Record</th>" : "" }
-    </tr>
-  `;
+  const isLastWeek = currentView === "last_week";
+
+document.querySelector(".table thead").innerHTML = `
+  <tr>
+    <th style="width:${isLastWeek ? "30%" : "30%"};">Player</th>
+    <th style="width:${isLastWeek ? "15%" : "15%"};">${metricText}</th>
+    ${
+      isLastWeek
+        ? `<th style="width:20%;">%Rake</th>
+           <th style="width:15%;">Rake Back</th>`
+        : `<th style="width:30%;">Record</th>`
+    }
+        
+  </tr>
+`;
+
 
   const sorted = [...allPlayers].sort((a,b)=>{
     if(currentView === "total") return (b.total_rake||0)-(a.total_rake||0);
@@ -507,27 +779,79 @@ const metricText =
     return (b.last_week||0)-(a.last_week||0);
   });
 
-  playersBody.innerHTML = sorted.map(p=>{
-    const value =
-      currentView === "total" ? p.total_rake :
-      currentView === "this_week" ? p.this_week :
-      p.last_week;
 
-    const isLive = p.last_activity && (Date.now() - new Date(p.last_activity)) < 5000;
+playersBody.innerHTML = sorted.map(p=>{
+  const value =
+    currentView === "total" ? p.total_rake :
+    currentView === "this_week" ? p.this_week :
+    p.last_week;
 
-    return `
-      <tr style="${isLive ? 'background:rgba(74,222,128,0.18);transition:.3s;' : ''}">
-        <td>${p.player_uid}</td>
-        <td>$${Number(value||0).toLocaleString()}</td>
+  const isLive = p.last_activity && (Date.now() - new Date(p.last_activity)) < 5000;
+
+  const pct = Number.isFinite(Number(p.percent_rake)) ? Number(p.percent_rake) : 10;
+  const rakeback = isLastWeek ? (Number(value||0) * pct / 100) : 0;
+
+  return `
+    <tr style="${isLive ? 'background:rgba(74,222,128,0.18);transition:.3s;' : ''}">
+      <td>
+        <span style="font-weight:600">${p.player_uid}</span>
         ${
-          currentView !== "last_week"
-            ? `<td style="color:#4ade80;font-weight:600;width:170px;">${formatLastActivity(p)}</td>`
+          (p.note || "").trim()
+            ? ` <span class="truncate" style="color:#94a3b8; max-width:65%;">(${escapeHtml(p.note)})</span>`
             : ""
         }
-      </tr>
-    `;
-  }).join("");
+      </td>
+
+      <td>$${Number(value||0).toLocaleString()}</td>
+
+      ${
+        isLastWeek
+          ? `
+            <td>
+          <input
+  type="number"
+  inputmode="numeric"
+  pattern="[0-9]*"
+  min="10"
+  max="50"
+  step="1"
+  value="${pct}"
+  onclick="onPctTap(this)"
+  onfocus="onPctTap(this)"
+  onblur="onPercentBlur('${p.player_uid}', this.value, this)"
+  style="
+    width:48px;
+    min-width:48px;
+    text-align:center;
+    background:transparent;
+    border:1px solid rgba(255,255,255,.14);
+    color:white;
+    padding:4px 6px;
+    border-radius:6px;
+    outline:none;
+  "
+/>
+              <span style="color:#94a3b8;">%</span>
+            </td>
+            <td style="font-weight:600; color:#4ade80;">
+              $${Number(rakeback||0).toLocaleString()}
+            </td>
+          `
+          : `
+            <td style="color:#4ade80;font-weight:600;">
+              <span class="truncate" style="max-width:100%; display:inline-block;">
+                ${formatLastActivity(p)}
+              </span>
+            </td>
+          `
+      }
+    </tr>
+  `;
+}).join("");
+
+
 }
+
 
 // =====================
 // DASHBOARD
@@ -538,7 +862,9 @@ async function loadDashboard(){
 
 
 
-  agentNameEl.innerText = `UID: ${agent_uid}`;
+  const agent = await getAgent();
+  console.log("agent fetched:", agent);
+  agentNameEl.innerText = `Agent: ${agent?.name || agent_uid}`;
 
   let players = await getPlayers();
   players = await attachWeeklyRake(players);
