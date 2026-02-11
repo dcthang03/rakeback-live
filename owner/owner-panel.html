@@ -196,6 +196,8 @@ const playerSelect = document.getElementById("playerSelect");
 const thead = document.getElementById("thead");
 const tableTitle = document.getElementById("tableTitle");
 const playersCardTitle = document.getElementById("playersCardTitle");
+const totalAgentsCard = document.querySelector("#totalPlayers").closest(".card");
+
 
 // Make Total Players clickable -> players_state (only when agent selected)
 document.querySelector("#totalPlayers").closest(".card").setAttribute("data-view","players_state");
@@ -268,7 +270,7 @@ async function getOwner(){
 async function getAgentsByOwner(){
   const { data, error } = await sb
     .from("agents")
-    .select("agent_uid,name,owner_uid")
+    .select("agent_uid,name,pin,owner_uid")
     .eq("owner_uid", owner_uid)
     .order("agent_uid", { ascending:true });
 
@@ -458,6 +460,29 @@ function updatePlayersStateTableCell(){
   });
 }
 
+async function updateAgentName(agent_uid, name){
+  const val = String(name ?? "").trim();
+  const { error } = await sb
+    .from("agents")
+    .update({ name: val })
+    .eq("agent_uid", agent_uid)
+    .eq("owner_uid", owner_uid);
+  if(error) console.error("updateAgentName error:", error);
+}
+
+async function updateAgentPin(agent_uid, pin){
+  const raw = String(pin ?? "").replace(/\D/g,"").slice(0,4);
+  const { error } = await sb
+    .from("agents")
+    .update({ pin: raw })
+    .eq("agent_uid", agent_uid)
+    .eq("owner_uid", owner_uid);
+  if(error) console.error("updateAgentPin error:", error);
+}
+
+
+
+
 // update duration mượt
 setInterval(()=> {
   if(currentView === "players_state" && playersStateShow === "duration"){
@@ -530,38 +555,41 @@ function renderClubTable(){
 function renderAgentTable(){
   // agent mode: table shows players (same UX as agent panel)
   if(currentView === "players_state"){
-    thead.innerHTML = `
-      <tr>
-        <th style="width:35%;">Player</th>
-        <th style="width:25%;">Table</th>
-        <th style="width:40%;">Note</th>
-      </tr>
-    `;
+  thead.innerHTML = `
+    <tr>
+      <th style="width:40%;">Player</th>
+      <th style="width:25%;">Table</th>
+      <th style="width:35%;">Note</th>
+    </tr>
+  `;
 
-    const sortedPlayers = [...allPlayers].sort((a,b)=> b.is_online - a.is_online);
+  const sortedPlayers = [...allPlayers].sort((a,b)=> b.is_online - a.is_online);
 
-    playersBody.innerHTML = sortedPlayers.map(p=>`
-      <tr data-uid="${p.player_uid}">
-        <td>
-          <span style="font-weight:600">${p.player_uid}</span>
-          ${p.is_online ? ` <span style="color:#4ade80;">●</span>` : ` <span style="color:#64748b;">●</span>`}
-        </td>
-        <td>
-          <span class="table-slot ${p.is_online ? 'online' : 'offline'}">
-            ${p.table_position === "-" ? "-" : p.table_position}
-          </span>
-        </td>
-        <td>
-          <span class="truncate" style="color:#94a3b8;max-width:100%;display:inline-block;">
-            ${(p.note||"").trim() ? escapeHtml(p.note) : "-"}
-          </span>
-        </td>
-      </tr>
-    `).join("");
+  playersBody.innerHTML = sortedPlayers.map(p=>`
+    <tr data-uid="${p.player_uid}">
+      <td>
+        <span style="font-weight:600">${p.player_uid}</span>
+        ${p.is_online ? ` <span style="color:#4ade80;">●</span>` : ` <span style="color:#64748b;">●</span>`}
+      </td>
 
-    updatePlayersStateTableCell();
-    return;
-  }
+      <td>
+        <span class="table-slot ${p.is_online ? 'online' : 'offline'}">
+          ${p.table_position === "-" ? "-" : p.table_position}
+        </span>
+      </td>
+
+      <td>
+        <span class="truncate" style="color:#94a3b8;max-width:100%;display:inline-block;">
+          ${(p.note||"").trim() ? escapeHtml(p.note) : `<span style="color:#64748b">-</span>`}
+        </span>
+      </td>
+    </tr>
+  `).join("");
+
+  updatePlayersStateTableCell();
+  return;
+}
+
 
   const metricText =
     currentView === "total" ? "Total Rake" :
@@ -580,9 +608,9 @@ if(isLastWeek){
 } else {
   thead.innerHTML = `
     <tr>
-      <th style="width:30%;">Player</th>
-      <th style="width:15%;">${metricText}</th>
-      <th style="width:55%;">Record</th>
+      <th style="width:40%;">Player</th>
+      <th style="width:25%;">${metricText}</th>
+      <th style="width:35%;">Record</th>
     </tr>
   `;
 }
@@ -638,12 +666,91 @@ if(isLastWeek){
 }
 
 function renderTable(){
+  if(currentAgentUid === "ALL" && currentView === "agents_manage"){
+    renderAgentsManage();
+    return;
+  }
   if(currentAgentUid === "ALL"){
     renderClubTable();
   }else{
     renderAgentTable();
   }
 }
+
+
+// Render view"agent_manage"
+function renderAgentsManage(){
+  thead.innerHTML = `
+    <tr>
+      <th style="width:25%;">Agent UID</th>
+      <th style="width:45%;">Name</th>
+      <th style="width:30%;">PIN</th>
+    </tr>
+  `;
+
+  const sorted = [...ownerAgents].sort((a,b)=> String(a.agent_uid).localeCompare(String(b.agent_uid)));
+
+  playersBody.innerHTML = sorted.map(a=>`
+    <tr>
+      <td style="font-weight:600;">${a.agent_uid}</td>
+
+      <td>
+        <input
+          value="${escapeAttr(a.name || "")}"
+          onblur="onAgentNameBlur('${a.agent_uid}', this.value)"
+          style="
+            width:100%;
+            background:transparent;
+            border:1px solid rgba(255,255,255,.14);
+            color:white;
+            padding:6px 8px;
+            border-radius:8px;
+            outline:none;
+          "
+        />
+      </td>
+
+      <td>
+        <input
+          value="${escapeAttr(a.pin || "")}"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="4"
+          oninput="this.value=this.value.replace(/\\D/g,'').slice(0,4)"
+          onblur="onAgentPinBlur('${a.agent_uid}', this.value)"
+          style="
+            width:80px;
+            background:transparent;
+            border:1px solid rgba(255,255,255,.14);
+            color:white;
+            padding:6px 8px;
+            border-radius:8px;
+            outline:none;
+            text-align:center;
+          "
+        />
+      </td>
+    </tr>
+  `).join("");
+}
+
+window.onAgentNameBlur = async (agent_uid, value)=>{
+  await updateAgentName(agent_uid, value);
+  const a = ownerAgents.find(x=>x.agent_uid===agent_uid);
+  if(a) a.name = String(value ?? "").trim();
+};
+
+window.onAgentPinBlur = async (agent_uid, value)=>{
+  const pin = String(value ?? "").replace(/\D/g,"").slice(0,4);
+  await updateAgentPin(agent_uid, pin);
+  const a = ownerAgents.find(x=>x.agent_uid===agent_uid);
+  if(a) a.pin = pin;
+};
+
+
+
+
+
 
 // allow row click in club table
 window.selectAgentFromRow = function(agent_uid){
@@ -705,7 +812,7 @@ playerSelect.addEventListener("change", async ()=>{
 // =====================
 document.querySelectorAll(".card[data-view]").forEach(card=>{
   card.addEventListener("click",()=>{
-    // players_state only makes sense in agent mode
+    // bỏ chặn players_state khi ALL, nhưng cho phép agents_manage
     if(card.dataset.view === "players_state" && currentAgentUid === "ALL") return;
 
     document.querySelectorAll(".card[data-view]").forEach(c=>c.classList.remove("active"));
@@ -715,6 +822,7 @@ document.querySelectorAll(".card[data-view]").forEach(card=>{
     renderTable();
   });
 });
+
 
 // =====================
 // DASHBOARD LOADER
@@ -754,6 +862,7 @@ if(currentAgentUid === "ALL"){
     const logs = await getRakeLogsByAgents(agentUids);
 
     clubPlayers = players;
+    totalAgentsCard.setAttribute("data-view", "agents_manage");
 
     // attach weekly stats to all players (for aggregation)
     await attachWeeklyRakeToPlayers(players, logs, ranges);
